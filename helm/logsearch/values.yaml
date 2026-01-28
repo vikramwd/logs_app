@@ -1,5 +1,9 @@
 replicaCount: 1
 
+namespace:
+  name: "logsearch"
+  create: true
+
 image:
   repository: vkramkumar/opensearch-logsearch
   tag: v1

@@ -1,4 +1,8 @@
 pipeline {
+  parameters {
+    string(name: 'KUBE_NAMESPACE', defaultValue: 'default', description: 'Kubernetes namespace to deploy into')
+  }
+
   agent {
     kubernetes {
       yaml """
@@ -30,7 +34,7 @@ spec:
   }
 
   environment {
-    GIT_URL = 'https://github.com/vikramwd/logtool.git'
+    GIT_URL = 'https://github.com/vikramwd/logs_app.git'
     GIT_CREDENTIALS_ID = 'gh_pat'
     IMAGE_NAME = 'vkramkumar/opensearch-logsearch'
     BUILD_CONTEXT = 'logtool'
@@ -87,6 +91,8 @@ spec:
               --set image.repository=${IMAGE_NAME} \
               --set image.tag=${TAG} \
               --set service.nodePort=${NODEPORT} \
+              --namespace ${KUBE_NAMESPACE} \
+              --create-namespace \
               ${CTX}
           '''
         }
