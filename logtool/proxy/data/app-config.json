@@ -32,7 +32,7 @@
   "importEnabled": false,
   "importMaxFileBytes": 104857600,
   "importBatchSizeBytes": 10485760,
-  "importUiVisible": true,
+  "importUiVisible": false,
   "defaultIndexPattern": "creta",
   "indexOptions": [
     "perfect-casino-2026.01.27|perfect-casino-2026.01.27"

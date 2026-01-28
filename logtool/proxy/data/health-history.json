@@ -1,6 +1,10 @@
 {
   "history": [
     {
+      "time": "2026-01-28T13:41:22.205Z",
+      "status": "yellow"
+    },
+    {
       "time": "2026-01-28T13:08:08.092Z",
       "status": "offline"
     },

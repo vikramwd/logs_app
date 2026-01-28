@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: vkramkumar/opensearch-logsearch
-  tag: v5
+  tag: v1
   pullPolicy: Always
   pullSecrets: []
 
@@ -19,7 +19,7 @@ imagePullSecret:
 service:
   type: NodePort
   port: 9090
-  nodePort: 30080
+  nodePort: 30090
 
 resources:
   requests:
@@ -31,15 +31,15 @@ resources:
 
 persistence:
   enabled: true
-  size: 8Gi
+  size: 10Gi
 
 opensearch:
   host: "CHANGE_ME"
   port: "9200"
   scheme: "http"
   insecureSSL: "false"
-  username: "CHANGE_ME"
-  password: "CHANGE_ME"
+  username: "no_body"
+  password: "no_body"
   useSecret: true
   secretName: "logsearch-opensearch"
 
