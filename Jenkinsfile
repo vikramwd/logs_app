@@ -1,8 +1,4 @@
 pipeline {
-  parameters {
-    string(name: 'KUBE_NAMESPACE', defaultValue: 'default', description: 'Kubernetes namespace to deploy into')
-  }
-
   agent {
     kubernetes {
       yaml """
@@ -91,8 +87,6 @@ spec:
               --set image.repository=${IMAGE_NAME} \
               --set image.tag=${TAG} \
               --set service.nodePort=${NODEPORT} \
-              --namespace ${KUBE_NAMESPACE} \
-              --create-namespace \
               ${CTX}
           '''
         }
