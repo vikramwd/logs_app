@@ -88,7 +88,6 @@ spec:
               --set image.tag=${TAG} \
               --set service.nodePort=${NODEPORT} \
               --namespace logsearch \
-              --create-namespace \
               ${CTX}
           '''
         }
