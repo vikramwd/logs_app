@@ -1,0 +1,39 @@
+# Set to true for a single-node deployment (forces replicas to 1)
+singleNode: true
+
+# Required for OpenSearch 2.12+ 
+extraEnvs:
+- name: OPENSEARCH_INITIAL_ADMIN_PASSWORD
+  value: "Strong@Pass911" # Must be strong (uppercase, lowercase, digit, symbol)
+
+# Disable the default demo cert generation
+- name: DISABLE_INSTALL_DEMO_CONFIG
+  value: "true"
+
+# Disable the security plugin (TLS/Auth)
+config:
+  opensearch.yml: | # <--- The "|" makes this a string
+    cluster.name: opensearch-cluster
+    network.host: 0.0.0.0
+    plugins.security.disabled: true
+
+persistence:
+  enabled: true
+  enableInitChown: true
+  enableStatefulSetAutoDeletePVC: true
+  # Set your desired PVC size here
+  size: "50Gi"
+  accessModes:
+  - ReadWriteOnce
+
+# Minimum resource recommendations for dev/testing
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "1000m"
+    memory: "2Gi"
+
+plugins.ml_commons.agent_framework_enabled: true
+plugins.ml_commons.rag_pipeline_feature_enabled: true

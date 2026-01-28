@@ -1,0 +1,29 @@
+{
+  "rules": [
+    {
+      "id": "a0222a83-6cb2-4f73-b959-1c1cf27873eb",
+      "name": "Test",
+      "query": "_id:\"aLI15JsBPMpiQ4QkjdKt\"",
+      "threshold": 1,
+      "windowMinutes": 60,
+      "team": "alpha",
+      "email": "vikram.kumar@wdtablesystems.com"
+    },
+    {
+      "id": "9fa4668d-ca4f-4190-9da9-d87d5b4d6980",
+      "name": "Test2",
+      "query": "spring_application_name:\"com.wdtablesystems.pp.casino-manager-service\"",
+      "threshold": 1,
+      "windowMinutes": 60,
+      "email": "vikram.kumar@wdtablesystems.com"
+    },
+    {
+      "id": "6ae3af39-9be3-4802-be87-3d15f1443116",
+      "name": "Test3",
+      "query": "_id:vrTW55sBPMpiQ4Qk6hIx OR _id:v7TW55sBPMpiQ4Qk6hIx",
+      "threshold": 1,
+      "windowMinutes": 60,
+      "team": "alpha"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+# Point to your OpenSearch service (the same one Vector is using)
+opensearchHosts: "https://opensearch-cluster-master:9200"
+# Use the same credentials you set for OpenSearch
+config:
+  opensearch_dashboards.yml:
+    opensearch_security.enabled: false
+    opensearch.username: "admin"
+    opensearch.password: "Strong@Pass911"
+    opensearch.ssl.verificationMode: none # Skip SSL check for self-signed certs
+
+# Expose Dashboards via NodePort (similar to your Nginx app)
+service:
+  type: NodePort
+  port: 5601
+  nodePort: 30002
+
+startupProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 30 # This allows up to 300 seconds (5 mins) for startup
+
+observability.query_assist.enabled: true
+assistant.chat.enabled: true

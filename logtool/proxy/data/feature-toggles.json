@@ -1,0 +1,13 @@
+{
+  "teams": {
+    "alpha": {
+      "exports": true,
+      "bookmarks": true,
+      "rules": true,
+      "queryBuilder": true,
+      "limitTo7Days": false,
+      "piiUnmasked": false,
+      "showFullResults": true
+    }
+  }
+}

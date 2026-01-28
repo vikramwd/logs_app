@@ -1,0 +1,19 @@
+[sources.nginx_access]
+type = "file"
+include = ["/var/log/nginx/access.log"]
+read_from = "beginning"
+
+[transforms.parse_json]
+type = "remap"
+inputs = ["nginx_access"]
+source = '''
+. = parse_json!(.message)
+'''
+
+[sinks.opensearch]
+type = "elasticsearch"
+inputs = ["parse_json"]
+endpoints = ["http://opensearch-cluster-master.opensearch.svc.cluster.local:9200"]
+api_version = "v8"
+healthcheck = true
+bulk.index = "logtool-%d-%m-%Y"

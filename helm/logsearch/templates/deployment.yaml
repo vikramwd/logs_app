@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "logsearch.fullname" . }}
+  labels:
+    app: {{ include "logsearch.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "logsearch.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "logsearch.name" . }}
+    spec:
+      {{- if or .Values.image.pullSecrets .Values.imagePullSecret.create }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecrets }}
+      {{- range .Values.image.pullSecrets }}
+        - name: {{ . | quote }}
+      {{- end }}
+      {{- else }}
+        - name: {{ .Values.imagePullSecret.name | quote }}
+      {{- end }}
+      {{- end }}
+      containers:
+        - name: logsearch
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 80
+            - containerPort: 3001
+          readinessProbe:
+            httpGet:
+              path: /api/config
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          env:
+            - name: OPENSEARCH_HOST
+              value: {{ .Values.opensearch.host | quote }}
+            - name: OPENSEARCH_PORT
+              value: {{ .Values.opensearch.port | quote }}
+            - name: OPENSEARCH_SCHEME
+              value: {{ .Values.opensearch.scheme | quote }}
+            - name: OPENSEARCH_INSECURE_SSL
+              value: {{ .Values.opensearch.insecureSSL | quote }}
+            {{- if .Values.opensearch.useSecret }}
+            - name: OPENSEARCH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.opensearch.secretName }}
+                  key: OPENSEARCH_USERNAME
+            - name: OPENSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.opensearch.secretName }}
+                  key: OPENSEARCH_PASSWORD
+            {{- else }}
+            - name: OPENSEARCH_USERNAME
+              value: {{ .Values.opensearch.username | quote }}
+            - name: OPENSEARCH_PASSWORD
+              value: {{ .Values.opensearch.password | quote }}
+            {{- end }}
+            - name: DEFAULT_INDEX_PATTERN
+              value: {{ .Values.defaultIndexPattern | quote }}
+            - name: AUTH_TOKEN_TTL_MINUTES
+              value: {{ .Values.authTokenTtlMinutes | quote }}
+            {{- if .Values.admin.useSecret }}
+            - name: ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.admin.secretName }}
+                  key: ADMIN_USER
+            - name: ADMIN_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.admin.secretName }}
+                  key: ADMIN_PASS
+            {{- else }}
+            - name: ADMIN_USER
+              value: {{ .Values.admin.user | quote }}
+            - name: ADMIN_PASS
+              value: {{ .Values.admin.pass | quote }}
+            {{- end }}
+            - name: DATA_DIR
+              value: "/app/proxy/data"
+            - name: APP_VERSION
+              value: {{ .Values.appVersion | default .Values.image.tag | quote }}
+          resources:
+{{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: proxy-data
+              mountPath: /app/proxy/data
+      volumes:
+        - name: proxy-data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "logsearch.fullname" . }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

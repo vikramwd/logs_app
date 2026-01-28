@@ -1,0 +1,46 @@
+# Mandatory fix: Prevents the "nil pointer" error
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Point to your OpenSearch service (the same one Vector is using)
+opensearchHosts: "http://opensearch-cluster-master:9200"
+# Use the same credentials you set for OpenSearch
+config:
+  opensearch_dashboards.yml:
+    opensearch_security.enabled: false
+    opensearch.username: "admin"
+    opensearch.password: "Strong@Password123"
+    opensearch.ssl.verificationMode: none # Skip SSL check for self-signed certs
+    server.basePath: "/dash"
+    server.rewriteBasePath: true
+
+# Expose Dashboards via NodePort (similar to your Nginx app)
+service:
+  type: NodePort
+  port: 5601
+  nodePort: 30002
+
+# OpenSearch Dashboards takes a long time to initialize JS plugins.
+# This config allows up to 10 minutes (60 * 10) for the service to start.
+startupProbe:
+  tcpSocket:
+    port: 5601
+  initialDelaySeconds: 60 # Wait 1 minute before even checking the first time
+  periodSeconds: 10 # Check every 10 seconds
+  failureThreshold: 60 # Allow 60 failures (600 seconds total)
+
+# Also ensure Liveness and Readiness don't kill the pod while it's still starting
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 20
+  timeoutSeconds: 5
+
+observability.query_assist.enabled: true
+assistant.chat.enabled: true

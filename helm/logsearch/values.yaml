@@ -1,0 +1,53 @@
+replicaCount: 1
+
+image:
+  repository: vkramkumar/opensearch-logsearch
+  tag: v5
+  pullPolicy: Always
+  pullSecrets: []
+
+appVersion: "uat"
+
+imagePullSecret:
+  create: true
+  name: "logsearch-regcred"
+  registry: "https://index.docker.io/v1/"
+  username: "vkramkumar"
+  password: "FFck70@123"
+  email: "vkram.kumar@hotmail.com"
+
+service:
+  type: NodePort
+  port: 9090
+  nodePort: 30080
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "2"
+    memory: "1024Mi"
+
+persistence:
+  enabled: true
+  size: 8Gi
+
+opensearch:
+  host: "CHANGE_ME"
+  port: "9200"
+  scheme: "http"
+  insecureSSL: "false"
+  username: "CHANGE_ME"
+  password: "CHANGE_ME"
+  useSecret: true
+  secretName: "logsearch-opensearch"
+
+admin:
+  user: "admin"
+  pass: "redhat"
+  useSecret: true
+  secretName: "logsearch-admin"
+
+defaultIndexPattern: "mains-*"
+authTokenTtlMinutes: "10080"

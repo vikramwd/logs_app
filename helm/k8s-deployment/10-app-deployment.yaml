@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logsearch-app
+  namespace: logging
+  labels:
+    app: logsearch
+    component: app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: logsearch
+      component: app
+  template:
+    metadata:
+      labels:
+        app: logsearch
+        component: app
+    spec:
+      containers:
+      - name: logsearch
+        image: vkramkumar/opensearch-logsearch:v1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        - containerPort: 3001
+        env:
+        - name: OPENSEARCH_HOST
+          value: "CHANGE_ME"
+        - name: OPENSEARCH_PORT
+          value: "9200"
+        - name: OPENSEARCH_SCHEME
+          value: "http"
+        - name: OPENSEARCH_INSECURE_SSL
+          value: "false"
+        - name: OPENSEARCH_USERNAME
+          value: "CHANGE_ME"
+        - name: OPENSEARCH_PASSWORD
+          value: "CHANGE_ME"
+        - name: DEFAULT_INDEX_PATTERN
+          value: "vector-*"
+        - name: ADMIN_USER
+          value: "admin"
+        - name: ADMIN_PASS
+          value: "change-me"
+        - name: DATA_DIR
+          value: "/app/proxy/data"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1024Mi"
+          limits:
+            cpu: "2"
+            memory: "1024Mi"
+        volumeMounts:
+        - name: proxy-data
+          mountPath: /app/proxy/data
+      volumes:
+      - name: proxy-data
+        persistentVolumeClaim:
+          claimName: logsearch-proxy-data

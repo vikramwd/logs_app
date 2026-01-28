@@ -1,0 +1,464 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-api
+  labels:
+    app: nginx-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-api
+  template:
+    metadata:
+      labels:
+        app: nginx-api
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/mock-maps.conf
+              subPath: mock-maps.conf
+            - name: profiles-data
+              mountPath: /usr/share/nginx/html
+            - name: nginx-logs
+              mountPath: /var/log/nginx
+        - name: vector
+          image: timberio/vector:0.34.0-alpine
+          args: ["-c", "/etc/vector/vector.toml"]
+          volumeMounts:
+            - name: vector-config
+              mountPath: /etc/vector/vector.toml
+              subPath: vector.toml
+            - name: nginx-logs
+              mountPath: /var/log/nginx
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-api-config
+            items:
+              - key: default.conf
+                path: default.conf
+              - key: mock-maps.conf
+                path: mock-maps.conf
+        - name: profiles-data
+          configMap:
+            name: nginx-api-config
+            items:
+              - key: profile-1.json
+                path: profiles/1.json
+              - key: profile-2.json
+                path: profiles/2.json
+              - key: profile-3.json
+                path: profiles/3.json
+              - key: profile-4.json
+                path: profiles/4.json
+              - key: profile-5.json
+                path: profiles/5.json
+              - key: profile-6.json
+                path: profiles/6.json
+              - key: profile-7.json
+                path: profiles/7.json
+              - key: profile-8.json
+                path: profiles/8.json
+              - key: profile-9.json
+                path: profiles/9.json
+              - key: profile-10.json
+                path: profiles/10.json
+              - key: profile-11.json
+                path: profiles/11.json
+              - key: profile-12.json
+                path: profiles/12.json
+              - key: profile-13.json
+                path: profiles/13.json
+              - key: profile-14.json
+                path: profiles/14.json
+              - key: profile-15.json
+                path: profiles/15.json
+              - key: profile-16.json
+                path: profiles/16.json
+              - key: profile-17.json
+                path: profiles/17.json
+              - key: profile-18.json
+                path: profiles/18.json
+              - key: profile-19.json
+                path: profiles/19.json
+              - key: profile-20.json
+                path: profiles/20.json
+              - key: profile-21.json
+                path: profiles/21.json
+              - key: profile-22.json
+                path: profiles/22.json
+              - key: profile-23.json
+                path: profiles/23.json
+              - key: profile-24.json
+                path: profiles/24.json
+              - key: profile-25.json
+                path: profiles/25.json
+              - key: profile-26.json
+                path: profiles/26.json
+              - key: profile-27.json
+                path: profiles/27.json
+              - key: profile-28.json
+                path: profiles/28.json
+              - key: profile-29.json
+                path: profiles/29.json
+              - key: profile-30.json
+                path: profiles/30.json
+              - key: profile-31.json
+                path: profiles/31.json
+              - key: profile-32.json
+                path: profiles/32.json
+              - key: profile-33.json
+                path: profiles/33.json
+              - key: profile-34.json
+                path: profiles/34.json
+              - key: profile-35.json
+                path: profiles/35.json
+              - key: profile-36.json
+                path: profiles/36.json
+              - key: profile-37.json
+                path: profiles/37.json
+              - key: profile-38.json
+                path: profiles/38.json
+              - key: profile-39.json
+                path: profiles/39.json
+              - key: profile-40.json
+                path: profiles/40.json
+              - key: profile-41.json
+                path: profiles/41.json
+              - key: profile-42.json
+                path: profiles/42.json
+              - key: profile-43.json
+                path: profiles/43.json
+              - key: profile-44.json
+                path: profiles/44.json
+              - key: profile-45.json
+                path: profiles/45.json
+              - key: profile-46.json
+                path: profiles/46.json
+              - key: profile-47.json
+                path: profiles/47.json
+              - key: profile-48.json
+                path: profiles/48.json
+              - key: profile-49.json
+                path: profiles/49.json
+              - key: profile-50.json
+                path: profiles/50.json
+              - key: profile-51.json
+                path: profiles/51.json
+              - key: profile-52.json
+                path: profiles/52.json
+              - key: profile-53.json
+                path: profiles/53.json
+              - key: profile-54.json
+                path: profiles/54.json
+              - key: profile-55.json
+                path: profiles/55.json
+              - key: profile-56.json
+                path: profiles/56.json
+              - key: profile-57.json
+                path: profiles/57.json
+              - key: profile-58.json
+                path: profiles/58.json
+              - key: profile-59.json
+                path: profiles/59.json
+              - key: profile-60.json
+                path: profiles/60.json
+              - key: profile-61.json
+                path: profiles/61.json
+              - key: profile-62.json
+                path: profiles/62.json
+              - key: profile-63.json
+                path: profiles/63.json
+              - key: profile-64.json
+                path: profiles/64.json
+              - key: profile-65.json
+                path: profiles/65.json
+              - key: profile-66.json
+                path: profiles/66.json
+              - key: profile-67.json
+                path: profiles/67.json
+              - key: profile-68.json
+                path: profiles/68.json
+              - key: profile-69.json
+                path: profiles/69.json
+              - key: profile-70.json
+                path: profiles/70.json
+              - key: profile-71.json
+                path: profiles/71.json
+              - key: profile-72.json
+                path: profiles/72.json
+              - key: profile-73.json
+                path: profiles/73.json
+              - key: profile-74.json
+                path: profiles/74.json
+              - key: profile-75.json
+                path: profiles/75.json
+              - key: profile-76.json
+                path: profiles/76.json
+              - key: profile-77.json
+                path: profiles/77.json
+              - key: profile-78.json
+                path: profiles/78.json
+              - key: profile-79.json
+                path: profiles/79.json
+              - key: profile-80.json
+                path: profiles/80.json
+              - key: profile-81.json
+                path: profiles/81.json
+              - key: profile-82.json
+                path: profiles/82.json
+              - key: profile-83.json
+                path: profiles/83.json
+              - key: profile-84.json
+                path: profiles/84.json
+              - key: profile-85.json
+                path: profiles/85.json
+              - key: profile-86.json
+                path: profiles/86.json
+              - key: profile-87.json
+                path: profiles/87.json
+              - key: profile-88.json
+                path: profiles/88.json
+              - key: profile-89.json
+                path: profiles/89.json
+              - key: profile-90.json
+                path: profiles/90.json
+              - key: profile-91.json
+                path: profiles/91.json
+              - key: profile-92.json
+                path: profiles/92.json
+              - key: profile-93.json
+                path: profiles/93.json
+              - key: profile-94.json
+                path: profiles/94.json
+              - key: profile-95.json
+                path: profiles/95.json
+              - key: profile-96.json
+                path: profiles/96.json
+              - key: profile-97.json
+                path: profiles/97.json
+              - key: profile-98.json
+                path: profiles/98.json
+              - key: profile-99.json
+                path: profiles/99.json
+              - key: profile-100.json
+                path: profiles/100.json
+              - key: mock-1.yaml
+                path: mock-data/1.yaml
+              - key: mock-2.yaml
+                path: mock-data/2.yaml
+              - key: mock-3.yaml
+                path: mock-data/3.yaml
+              - key: mock-4.yaml
+                path: mock-data/4.yaml
+              - key: mock-5.yaml
+                path: mock-data/5.yaml
+              - key: mock-6.yaml
+                path: mock-data/6.yaml
+              - key: mock-7.yaml
+                path: mock-data/7.yaml
+              - key: mock-8.yaml
+                path: mock-data/8.yaml
+              - key: mock-9.yaml
+                path: mock-data/9.yaml
+              - key: mock-10.yaml
+                path: mock-data/10.yaml
+              - key: mock-11.yaml
+                path: mock-data/11.yaml
+              - key: mock-12.yaml
+                path: mock-data/12.yaml
+              - key: mock-13.yaml
+                path: mock-data/13.yaml
+              - key: mock-14.yaml
+                path: mock-data/14.yaml
+              - key: mock-15.yaml
+                path: mock-data/15.yaml
+              - key: mock-16.yaml
+                path: mock-data/16.yaml
+              - key: mock-17.yaml
+                path: mock-data/17.yaml
+              - key: mock-18.yaml
+                path: mock-data/18.yaml
+              - key: mock-19.yaml
+                path: mock-data/19.yaml
+              - key: mock-20.yaml
+                path: mock-data/20.yaml
+              - key: mock-21.yaml
+                path: mock-data/21.yaml
+              - key: mock-22.yaml
+                path: mock-data/22.yaml
+              - key: mock-23.yaml
+                path: mock-data/23.yaml
+              - key: mock-24.yaml
+                path: mock-data/24.yaml
+              - key: mock-25.yaml
+                path: mock-data/25.yaml
+              - key: mock-26.yaml
+                path: mock-data/26.yaml
+              - key: mock-27.yaml
+                path: mock-data/27.yaml
+              - key: mock-28.yaml
+                path: mock-data/28.yaml
+              - key: mock-29.yaml
+                path: mock-data/29.yaml
+              - key: mock-30.yaml
+                path: mock-data/30.yaml
+              - key: mock-31.yaml
+                path: mock-data/31.yaml
+              - key: mock-32.yaml
+                path: mock-data/32.yaml
+              - key: mock-33.yaml
+                path: mock-data/33.yaml
+              - key: mock-34.yaml
+                path: mock-data/34.yaml
+              - key: mock-35.yaml
+                path: mock-data/35.yaml
+              - key: mock-36.yaml
+                path: mock-data/36.yaml
+              - key: mock-37.yaml
+                path: mock-data/37.yaml
+              - key: mock-38.yaml
+                path: mock-data/38.yaml
+              - key: mock-39.yaml
+                path: mock-data/39.yaml
+              - key: mock-40.yaml
+                path: mock-data/40.yaml
+              - key: mock-41.yaml
+                path: mock-data/41.yaml
+              - key: mock-42.yaml
+                path: mock-data/42.yaml
+              - key: mock-43.yaml
+                path: mock-data/43.yaml
+              - key: mock-44.yaml
+                path: mock-data/44.yaml
+              - key: mock-45.yaml
+                path: mock-data/45.yaml
+              - key: mock-46.yaml
+                path: mock-data/46.yaml
+              - key: mock-47.yaml
+                path: mock-data/47.yaml
+              - key: mock-48.yaml
+                path: mock-data/48.yaml
+              - key: mock-49.yaml
+                path: mock-data/49.yaml
+              - key: mock-50.yaml
+                path: mock-data/50.yaml
+              - key: mock-51.yaml
+                path: mock-data/51.yaml
+              - key: mock-52.yaml
+                path: mock-data/52.yaml
+              - key: mock-53.yaml
+                path: mock-data/53.yaml
+              - key: mock-54.yaml
+                path: mock-data/54.yaml
+              - key: mock-55.yaml
+                path: mock-data/55.yaml
+              - key: mock-56.yaml
+                path: mock-data/56.yaml
+              - key: mock-57.yaml
+                path: mock-data/57.yaml
+              - key: mock-58.yaml
+                path: mock-data/58.yaml
+              - key: mock-59.yaml
+                path: mock-data/59.yaml
+              - key: mock-60.yaml
+                path: mock-data/60.yaml
+              - key: mock-61.yaml
+                path: mock-data/61.yaml
+              - key: mock-62.yaml
+                path: mock-data/62.yaml
+              - key: mock-63.yaml
+                path: mock-data/63.yaml
+              - key: mock-64.yaml
+                path: mock-data/64.yaml
+              - key: mock-65.yaml
+                path: mock-data/65.yaml
+              - key: mock-66.yaml
+                path: mock-data/66.yaml
+              - key: mock-67.yaml
+                path: mock-data/67.yaml
+              - key: mock-68.yaml
+                path: mock-data/68.yaml
+              - key: mock-69.yaml
+                path: mock-data/69.yaml
+              - key: mock-70.yaml
+                path: mock-data/70.yaml
+              - key: mock-71.yaml
+                path: mock-data/71.yaml
+              - key: mock-72.yaml
+                path: mock-data/72.yaml
+              - key: mock-73.yaml
+                path: mock-data/73.yaml
+              - key: mock-74.yaml
+                path: mock-data/74.yaml
+              - key: mock-75.yaml
+                path: mock-data/75.yaml
+              - key: mock-76.yaml
+                path: mock-data/76.yaml
+              - key: mock-77.yaml
+                path: mock-data/77.yaml
+              - key: mock-78.yaml
+                path: mock-data/78.yaml
+              - key: mock-79.yaml
+                path: mock-data/79.yaml
+              - key: mock-80.yaml
+                path: mock-data/80.yaml
+              - key: mock-81.yaml
+                path: mock-data/81.yaml
+              - key: mock-82.yaml
+                path: mock-data/82.yaml
+              - key: mock-83.yaml
+                path: mock-data/83.yaml
+              - key: mock-84.yaml
+                path: mock-data/84.yaml
+              - key: mock-85.yaml
+                path: mock-data/85.yaml
+              - key: mock-86.yaml
+                path: mock-data/86.yaml
+              - key: mock-87.yaml
+                path: mock-data/87.yaml
+              - key: mock-88.yaml
+                path: mock-data/88.yaml
+              - key: mock-89.yaml
+                path: mock-data/89.yaml
+              - key: mock-90.yaml
+                path: mock-data/90.yaml
+              - key: mock-91.yaml
+                path: mock-data/91.yaml
+              - key: mock-92.yaml
+                path: mock-data/92.yaml
+              - key: mock-93.yaml
+                path: mock-data/93.yaml
+              - key: mock-94.yaml
+                path: mock-data/94.yaml
+              - key: mock-95.yaml
+                path: mock-data/95.yaml
+              - key: mock-96.yaml
+                path: mock-data/96.yaml
+              - key: mock-97.yaml
+                path: mock-data/97.yaml
+              - key: mock-98.yaml
+                path: mock-data/98.yaml
+              - key: mock-99.yaml
+                path: mock-data/99.yaml
+              - key: mock-100.yaml
+                path: mock-data/100.yaml
+              - key: mock_data.yaml
+                path: mock_data.yaml
+        - name: vector-config
+          configMap:
+            name: nginx-api-vector-config
+            items:
+              - key: vector.toml
+                path: vector.toml
+        - name: nginx-logs
+          emptyDir: {}

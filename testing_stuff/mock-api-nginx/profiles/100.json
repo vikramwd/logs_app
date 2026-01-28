@@ -1,0 +1,20 @@
+{
+  "name": "User 100",
+  "email": "user100@example.com",
+  "phone": "xxx xxx xxxx",
+  "city": "Lucknow",
+  "birthday_month": "April",
+  "age": 22,
+  "address": "200 Sample Street",
+  "digital_id": "DID-00100",
+  "education": "Diploma IT",
+  "health_id": "HID-000100",
+  "gender": "female",
+  "country": "India",
+  "state": "Punjab",
+  "postal_code": "400100",
+  "marital_status": "widowed",
+  "employment_status": "student",
+  "blood_group": "B-",
+  "emergency_contact": "EC-000100"
+}

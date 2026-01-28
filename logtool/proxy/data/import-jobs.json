@@ -1,0 +1,72 @@
+{
+  "jobs": [
+    {
+      "id": "96e56d7c-41b9-497b-b3e6-4126fd3564df",
+      "status": "completed",
+      "index": "tata",
+      "parserType": "ndjson",
+      "fileName": "PPSUPPORT-1128.bulk.ndjson",
+      "createdAt": "2026-01-28T08:47:55.794Z",
+      "totalLines": 29210,
+      "ingested": 14605,
+      "failed": 0,
+      "skipped": 14605,
+      "startedAt": "2026-01-28T08:47:55.800Z",
+      "finishedAt": "2026-01-28T08:47:59.061Z"
+    },
+    {
+      "id": "02a181c0-e928-423b-8354-a7167960b583",
+      "status": "completed",
+      "index": "toyota",
+      "parserType": "ndjson",
+      "fileName": "PPSUPPORT-1128.bulk.ndjson",
+      "createdAt": "2026-01-28T08:36:17.572Z",
+      "totalLines": 29210,
+      "ingested": 14605,
+      "failed": 0,
+      "skipped": 14605,
+      "startedAt": "2026-01-28T08:36:17.577Z",
+      "finishedAt": "2026-01-28T08:36:22.111Z"
+    },
+    {
+      "id": "f8b1cfb9-b1b8-4165-8b76-54829947e37e",
+      "status": "completed",
+      "index": "maruti",
+      "parserType": "ndjson",
+      "fileName": "PPSUPPORT-1128.bulk.ndjson",
+      "createdAt": "2026-01-28T07:27:37.372Z",
+      "totalLines": 29210,
+      "ingested": 14605,
+      "failed": 14605,
+      "startedAt": "2026-01-28T07:27:37.376Z",
+      "finishedAt": "2026-01-28T07:27:40.793Z"
+    },
+    {
+      "id": "7e0a8bbb-206f-43ce-9a5c-be385696020c",
+      "status": "completed",
+      "index": "creta",
+      "parserType": "ndjson",
+      "fileName": "PPSUPPORT-1128.bulk.ndjson",
+      "createdAt": "2026-01-28T07:21:07.122Z",
+      "totalLines": 29210,
+      "ingested": 14605,
+      "failed": 14605,
+      "startedAt": "2026-01-28T07:21:07.126Z",
+      "finishedAt": "2026-01-28T07:21:12.663Z"
+    },
+    {
+      "id": "b1aaf733-f911-4093-9458-7f3bd62da398",
+      "status": "failed",
+      "index": "test-import-2026.01.28",
+      "parserType": "ndjson",
+      "fileName": "tmp-import.ndjson",
+      "createdAt": "2026-01-28T07:05:22.178Z",
+      "totalLines": 2,
+      "ingested": 0,
+      "failed": 0,
+      "startedAt": "2026-01-28T07:05:22.183Z",
+      "finishedAt": "2026-01-28T07:05:22.211Z",
+      "error": "getaddrinfo ENOTFOUND host.docker.internal"
+    }
+  ]
+}
