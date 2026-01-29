@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 
 interface IndexPatternSetting {
@@ -121,6 +121,8 @@ interface ActivityEntry {
   ip?: string;
   message?: string;
 }
+
+type NoticeType = 'success' | 'error' | 'info';
 
 interface AnomalyHint {
   type: string;
@@ -291,6 +293,8 @@ function AdminApp() {
   const [teamBookmarks, setTeamBookmarks] = useState<TeamBookmark[]>([]);
   const [diagnostics, setDiagnostics] = useState<Diagnostics | null>(null);
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState<{ type: NoticeType; message: string } | null>(null);
+  const noticeTimerRef = useRef<number | null>(null);
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamQuery, setNewTeamQuery] = useState('');
   const [newTeamNameSpace, setNewTeamNameSpace] = useState('');
@@ -421,6 +425,36 @@ function AdminApp() {
     });
   }, [usersList]);
 
+  useEffect(() => {
+    setShowUserManagement(false);
+    setShowTeams(false);
+    setShowIndexManagement(false);
+    setShowAppConfig(false);
+    setShowTeamBookmarks(false);
+    setShowMaintenance(false);
+    setShowBranding(false);
+    setShowHealth(false);
+    setShowEmailAlerts(false);
+    setShowOpenSearch(false);
+    setShowImport(false);
+    setShowCustomUrls(false);
+    setShowAlertRules(false);
+    setShowFeatureToggles(false);
+    localStorage.setItem('adminShowUsers', 'false');
+    localStorage.setItem('adminShowTeams', 'false');
+    localStorage.setItem('adminShowIndexManagement', 'false');
+    localStorage.setItem('adminShowAppConfig', 'false');
+    localStorage.setItem('adminShowTeamBookmarks', 'false');
+    localStorage.setItem('adminShowMaintenance', 'false');
+    localStorage.setItem('adminShowBranding', 'false');
+    localStorage.setItem('adminShowHealth', 'false');
+    localStorage.setItem('adminShowEmailAlerts', 'false');
+    localStorage.setItem('adminShowOpenSearch', 'false');
+    localStorage.setItem('adminShowImport', 'false');
+    localStorage.setItem('adminShowAlertRules', 'false');
+    localStorage.setItem('adminShowToggles', 'false');
+  }, []);
+
   const adminHeaders = useMemo(() => {
     return authHeader ? { Authorization: authHeader } : {};
   }, [authHeader]);
@@ -455,11 +489,30 @@ function AdminApp() {
     return axios.request<T>({ method, url, data, headers, params });
   };
 
+  const showNotice = (message: string, type: NoticeType = 'info') => {
+    setNotice({ type, message });
+    if (noticeTimerRef.current) {
+      window.clearTimeout(noticeTimerRef.current);
+    }
+    noticeTimerRef.current = window.setTimeout(() => {
+      setNotice(null);
+      noticeTimerRef.current = null;
+    }, 4000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (noticeTimerRef.current) {
+        window.clearTimeout(noticeTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleLogoUpload = (file: File | null) => {
     if (!file) return;
     const maxBytes = 512 * 1024;
     if (file.size > maxBytes) {
-      alert('Logo is too large. Please upload an image under 512KB.');
+      showNotice('Logo is too large. Please upload an image under 512KB.', 'error');
       return;
     }
     const reader = new FileReader();
@@ -930,7 +983,7 @@ function AdminApp() {
     );
     setPiiRulesText(piiFieldRules.map((rule) => `${rule.pattern}=${rule.action}`).join('\n'));
     setHighlightRulesText(highlightRules.map((rule) => `${rule.field}|${rule.match}|${rule.pattern}|${rule.color}`).join('\n'));
-    alert('Config saved.');
+    showNotice('Config saved.', 'success');
   };
 
   const testConnection = async () => {
@@ -984,7 +1037,8 @@ function AdminApp() {
 
   const rotateLogs = async () => {
     const res = await adminRequest<RotateResponse>('post', '/api/admin/logs/rotate');
-    alert(res.data.rotated ? 'Access log rotated.' : res.data.reason);
+    const message = res.data.rotated ? 'Access log rotated.' : (res.data.reason || 'Rotation failed.');
+    showNotice(message, res.data.rotated ? 'success' : 'error');
     await loadAll();
   };
 
@@ -993,18 +1047,18 @@ function AdminApp() {
     if (!daysRaw) return;
     const days = Number(daysRaw);
     if (!Number.isFinite(days) || days < 0) {
-      alert('Enter a valid number of days (0 = delete all rotated logs).');
+      showNotice('Enter a valid number of days (0 = delete all rotated logs).', 'error');
       return;
     }
     const res = await adminRequest<{ removed: number }>('post', '/api/admin/logs/prune', { days });
-    alert(`Removed ${res.data.removed} old log file(s).`);
+    showNotice(`Removed ${res.data.removed} old log file(s).`, 'success');
     await loadAll();
   };
 
   const saveRules = async () => {
     const res = await adminRequest<Rule[]>('put', '/api/admin/rules', rules);
     setRules(res.data);
-    alert('Rules updated.');
+    showNotice('Rules updated.', 'success');
   };
 
   const sendTestEmail = async () => {
@@ -1091,15 +1145,15 @@ function AdminApp() {
 
   const handleImportPreview = async () => {
     if (!importFile) {
-      alert('Select a file to preview.');
+      showNotice('Select a file to preview.', 'error');
       return;
     }
     if (!importIndex.trim()) {
-      alert('Enter a target index.');
+      showNotice('Enter a target index.', 'error');
       return;
     }
     if (importParser === 'regex' && !importRegex.trim()) {
-      alert('Regex pattern is required.');
+      showNotice('Regex pattern is required.', 'error');
       return;
     }
     setImportBusy(true);
@@ -1110,7 +1164,7 @@ function AdminApp() {
       });
       setImportPreview(res.data);
     } catch (error: any) {
-      alert(formatImportError(error));
+      showNotice(formatImportError(error), 'error');
     } finally {
       setImportBusy(false);
     }
@@ -1118,15 +1172,15 @@ function AdminApp() {
 
   const handleImportRun = async () => {
     if (!importFile) {
-      alert('Select a file to import.');
+      showNotice('Select a file to import.', 'error');
       return;
     }
     if (!importIndex.trim()) {
-      alert('Enter a target index.');
+      showNotice('Enter a target index.', 'error');
       return;
     }
     if (importParser === 'regex' && !importRegex.trim()) {
-      alert('Regex pattern is required.');
+      showNotice('Regex pattern is required.', 'error');
       return;
     }
     setImportBusy(true);
@@ -1141,7 +1195,7 @@ function AdminApp() {
         await fetchImportHistory();
       }
     } catch (error: any) {
-      alert(formatImportError(error));
+      showNotice(formatImportError(error), 'error');
     } finally {
       setImportBusy(false);
     }
@@ -1160,13 +1214,13 @@ function AdminApp() {
     try {
       const res = await adminRequest<RestartResponse>('post', '/api/admin/restart', { target });
       if (res.data.ok) {
-        alert(res.data.message || 'Restart requested.');
+        showNotice(res.data.message || 'Restart requested.', 'success');
       } else {
-        alert(res.data.error || 'Restart failed.');
+        showNotice(res.data.error || 'Restart failed.', 'error');
       }
     } catch (err: any) {
       const detail = err?.response?.data?.detail || err?.response?.data?.error;
-      alert(detail || 'Restart failed.');
+      showNotice(detail || 'Restart failed.', 'error');
     } finally {
       setRestartBusy(false);
     }
@@ -1181,7 +1235,7 @@ function AdminApp() {
     const name = newAdminTeamName.trim();
     const description = newAdminTeamDesc.trim();
     if (!name) {
-      alert('Team name is required.');
+      showNotice('Team name is required.', 'error');
       return;
     }
     const res = await adminRequest<Team>('post', '/api/admin/teams', { name, description });
@@ -1205,7 +1259,7 @@ function AdminApp() {
       const res = await adminRequest<IndexStatsResponse>('get', url);
       setIndexStats(res.data);
     } catch {
-      alert('Failed to load index stats.');
+      showNotice('Failed to load index stats.', 'error');
     } finally {
       setIndexStatsLoading(false);
     }
@@ -1217,7 +1271,7 @@ function AdminApp() {
     const query = newTeamQuery.trim();
     const team = newTeamNameSpace.trim();
     if (!name || !query) {
-      alert('Name and query are required.');
+      showNotice('Name and query are required.', 'error');
       return;
     }
     const payload: { name: string; query: string; team?: string } = { name, query };
@@ -1237,7 +1291,7 @@ function AdminApp() {
       .map((item) => item.trim())
       .filter((item) => item.length > 0);
     if (!username || !password) {
-      alert('Username and password required.');
+      showNotice('Username and password required.', 'error');
       return;
     }
     const payload: { username: string; password: string; role: string; teams?: string[] } = {
@@ -1273,7 +1327,7 @@ function AdminApp() {
 
   const reloadUsers = async () => {
     const res = await adminRequest<{ loaded: number }>('post', '/api/admin/users/reload');
-    alert(`Reloaded ${res.data.loaded} user(s).`);
+    showNotice(`Reloaded ${res.data.loaded} user(s).`, 'success');
     const usersRes = await adminRequest<{ id: string; username: string; role: string; teams: string[]; createdAt?: string; lastLoginAt?: string }[]>('get', '/api/admin/users');
     setUsersList(usersRes.data);
   };
@@ -1285,7 +1339,7 @@ function AdminApp() {
       { teams: featureToggles }
     );
     setFeatureToggles(res.data.teams || {});
-    alert('Feature toggles saved.');
+    showNotice('Feature toggles saved.', 'success');
   };
 
   const downloadBackup = async () => {
@@ -1308,10 +1362,10 @@ function AdminApp() {
       const text = await file.text();
       const payload = JSON.parse(text);
       await adminRequest('post', '/api/admin/restore', payload);
-      alert('Restore complete. Refreshing data.');
+      showNotice('Restore complete. Refreshing data.', 'success');
       await loadAll();
     } catch {
-      alert('Restore failed. Check the backup file.');
+      showNotice('Restore failed. Check the backup file.', 'error');
     } finally {
       setRestoreBusy(false);
     }
@@ -1850,47 +1904,6 @@ function AdminApp() {
         </section>
 
         <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-5">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Activity Feed</h2>
-          {activityRows.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">No recent activity.</p>}
-          {activityRows.length > 0 && (
-            <div className="overflow-auto border dark:border-gray-700 rounded max-h-96">
-              <table className="min-w-full text-xs">
-                <thead className="bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300">
-                  <tr>
-                    <th className="text-left px-3 py-2">Time</th>
-                    <th className="text-left px-3 py-2">User</th>
-                    <th className="text-left px-3 py-2">Type</th>
-                    <th className="text-left px-3 py-2">Query / Format</th>
-                    <th className="text-left px-3 py-2">Index</th>
-                    <th className="text-left px-3 py-2">IP</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activityRows.map((entry, idx) => (
-                    <tr key={`${entry.time}-${idx}`} className="border-t dark:border-gray-700">
-                      <td className="px-3 py-2 whitespace-nowrap">{entry.time}</td>
-                      <td className="px-3 py-2">{entry.user || 'public'}</td>
-                      <td className="px-3 py-2">{entry.type}</td>
-                      <td className="px-3 py-2">
-                        {entry.type === 'export'
-                          ? `${entry.format || 'export'}${entry.size ? ` (${entry.size})` : ''}`
-                          : (entry.query || entry.message || '(match_all)')}
-                      </td>
-                      <td className="px-3 py-2">{entry.indexPattern || '-'}</td>
-                      <td className="px-3 py-2">{entry.ip || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {activity.length > activityRows.length && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">Showing most recent {activityRows.length} entries.</div>
-          )}
-        </section>
-
-
-        <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
             <div>
               <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Branding</h2>
@@ -2346,32 +2359,6 @@ function AdminApp() {
         </section>
 
         <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-5">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Weekly Activity Overview</h2>
-          {weeklyDays.length === 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">No weekly usage data yet.</p>
-          )}
-          {weeklyDays.length > 0 && (
-            <div className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
-              <div className="flex items-end gap-2 h-24">
-                {weeklyDays.map((day) => (
-                  <div key={day.date} className="flex-1 flex flex-col items-center">
-                    <div
-                      className="w-full rounded-sm bg-blue-500"
-                      style={{ height: `${Math.max(8, day.percent)}%` }}
-                      title={`${day.date}: ${day.total} events (${day.percent}%)`}
-                    />
-                    <div className="text-[10px] mt-1 text-gray-500 dark:text-gray-400">{day.date.slice(5)}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                Percentage is relative to the highest day in the last 7 days.
-              </div>
-            </div>
-          )}
-        </section>
-
-        <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-5">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Top Users (Today)</h2>
           {!topUsers.length && (
             <p className="text-sm text-gray-500 dark:text-gray-400">No user usage data yet.</p>
@@ -2398,32 +2385,6 @@ function AdminApp() {
               </div>
             </div>
           ) : null}
-        </section>
-
-        <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-5">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Global Load (Last 24h)</h2>
-          {hourlyRows.length === 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">No hourly data yet.</p>
-          )}
-          {hourlyRows.length > 0 && (
-            <div className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
-              <div className="flex items-end gap-2 h-24">
-                {hourlyRows.map((hour) => (
-                  <div key={hour.hour} className="flex-1 flex flex-col items-center">
-                    <div
-                      className="w-full rounded-sm bg-teal-500"
-                      style={{ height: `${Math.max(8, hour.percent)}%` }}
-                      title={`${hour.hour}: ${hour.total} actions`}
-                    />
-                    <div className="text-[10px] mt-1 text-gray-500 dark:text-gray-400">{hour.hour.slice(11, 13)}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                Total searches + exports per hour, last 24 hours.
-              </div>
-            </div>
-          )}
         </section>
 
         <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-5">
@@ -2993,10 +2954,124 @@ function AdminApp() {
             Restores app config, users, teams, feature toggles, rules, and team bookmarks.
           </p>
         </section>
+
+        <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-5">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Weekly Activity Overview</h2>
+          {weeklyDays.length === 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400">No weekly usage data yet.</p>
+          )}
+          {weeklyDays.length > 0 && (
+            <div className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
+              <div className="flex items-end gap-2 h-24">
+                {weeklyDays.map((day) => (
+                  <div key={day.date} className="flex-1 flex flex-col items-center">
+                    <div
+                      className="w-full rounded-sm bg-blue-500"
+                      style={{ height: `${Math.max(8, day.percent)}%` }}
+                      title={`${day.date}: ${day.total} events (${day.percent}%)`}
+                    />
+                    <div className="text-[10px] mt-1 text-gray-500 dark:text-gray-400">{day.date.slice(5)}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Percentage is relative to the highest day in the last 7 days.
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-5">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Global Load (Last 24h)</h2>
+          {hourlyRows.length === 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400">No hourly data yet.</p>
+          )}
+          {hourlyRows.length > 0 && (
+            <div className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
+              <div className="flex items-end gap-2 h-24">
+                {hourlyRows.map((hour) => (
+                  <div key={hour.hour} className="flex-1 flex flex-col items-center">
+                    <div
+                      className="w-full rounded-sm bg-teal-500"
+                      style={{ height: `${Math.max(8, hour.percent)}%` }}
+                      title={`${hour.hour}: ${hour.total} actions`}
+                    />
+                    <div className="text-[10px] mt-1 text-gray-500 dark:text-gray-400">{hour.hour.slice(11, 13)}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Total searches + exports per hour, last 24 hours.
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-5">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Activity Feed</h2>
+          {activityRows.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">No recent activity.</p>}
+          {activityRows.length > 0 && (
+            <div className="overflow-auto border dark:border-gray-700 rounded max-h-96">
+              <table className="min-w-full text-xs">
+                <thead className="bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300">
+                  <tr>
+                    <th className="text-left px-3 py-2">Time</th>
+                    <th className="text-left px-3 py-2">User</th>
+                    <th className="text-left px-3 py-2">Type</th>
+                    <th className="text-left px-3 py-2">Query / Format</th>
+                    <th className="text-left px-3 py-2">Index</th>
+                    <th className="text-left px-3 py-2">IP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activityRows.map((entry, idx) => (
+                    <tr key={`${entry.time}-${idx}`} className="border-t dark:border-gray-700">
+                      <td className="px-3 py-2 whitespace-nowrap">{entry.time}</td>
+                      <td className="px-3 py-2">{entry.user || 'public'}</td>
+                      <td className="px-3 py-2">{entry.type}</td>
+                      <td className="px-3 py-2">
+                        {entry.type === 'export'
+                          ? `${entry.format || 'export'}${entry.size ? ` (${entry.size})` : ''}`
+                          : (entry.query || entry.message || '(match_all)')}
+                      </td>
+                      <td className="px-3 py-2">{entry.indexPattern || '-'}</td>
+                      <td className="px-3 py-2">{entry.ip || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {activity.length > activityRows.length && (
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">Showing most recent {activityRows.length} entries.</div>
+          )}
+        </section>
         {appVersionLabel && (
           <div className="text-xs text-gray-500 dark:text-gray-400 text-right">{appVersionLabel}</div>
         )}
       </div>
+      {notice && (
+        <div className="fixed bottom-5 left-4 right-4 sm:left-auto sm:right-5 z-50">
+          <div
+            className={`flex items-start gap-3 rounded-lg px-4 py-3 text-sm shadow-lg ${
+              notice.type === 'success'
+                ? 'bg-emerald-600 text-white'
+                : notice.type === 'error'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-gray-900 text-white'
+            }`}
+          >
+            <span className="flex-1">{notice.message}</span>
+            <button
+              type="button"
+              onClick={() => setNotice(null)}
+              className="text-white/80 hover:text-white"
+            >
+              x
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
