@@ -27,6 +27,8 @@ services:
       context: ./proxy
     ports:
       - "${PROXY_PORT}:3001"
+    env_file:
+      - ./.env
     environment:
       OPENSEARCH_HOST: ${OPENSEARCH_HOST}
       OPENSEARCH_PORT: ${OPENSEARCH_PORT}

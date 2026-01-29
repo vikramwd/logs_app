@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 interface IndexPatternSetting {
@@ -290,7 +291,9 @@ function AdminApp() {
     return Boolean(ts && Date.now() - ts <= ADMIN_SESSION_TTL_MS);
   };
   const touchAdminSession = () => {
-    sessionStorage.setItem('adminAuthAt', String(Date.now()));
+    const ts = String(Date.now());
+    sessionStorage.setItem('adminAuthAt', ts);
+    localStorage.setItem('adminAuthAt', ts);
   };
 
   const [authHeader, setAuthHeader] = useState<string>(() => getStoredAdminAuth());
@@ -511,6 +514,8 @@ function AdminApp() {
     sessionStorage.removeItem('adminAuth');
     sessionStorage.removeItem('adminUser');
     sessionStorage.removeItem('adminAuthAt');
+    localStorage.removeItem('adminAuth');
+    localStorage.removeItem('adminAuthAt');
   };
 
   const adminRequest = async <T,>(method: 'get' | 'post' | 'put' | 'delete', url: string, data?: any) => {
@@ -890,6 +895,7 @@ function AdminApp() {
       await axios.get('/api/admin/ping', { headers: { Authorization: header } });
       setAuthHeader(header);
       sessionStorage.setItem('adminAuth', header);
+      localStorage.setItem('adminAuth', header);
       touchAdminSession();
       const displayUser = loginUser.trim();
       if (displayUser) {
@@ -1609,6 +1615,14 @@ function AdminApp() {
             <button onClick={() => setAdminDarkMode(!adminDarkMode)} className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100">
               {adminDarkMode ? '☀️' : '🌙'}
             </button>
+            <Link
+              to="/upload"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100"
+            >
+              Upload
+            </Link>
             <button onClick={loadAll} className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100">Refresh</button>
             <button onClick={handleLogout} className="px-3 py-1 rounded bg-red-600 text-white">Logout</button>
           </div>
@@ -2809,142 +2823,6 @@ function AdminApp() {
             </>
           ) : null}
         </section>
-
-        {(config.importUiVisible && config.importEnabled) ? (
-          <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Log Import (POC)</h2>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Upload structured logs and index them into OpenSearch.</div>
-                <div className="text-xs text-green-600 dark:text-green-400 mt-1">Auto-created import indices are deleted after 7 days (max).</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Max upload size: {Math.max(1, Math.round(((config.importMaxFileBytes || 0) / (1024 * 1024))))} MB ·
-                  Batch size: {Math.max(1, Math.round(((config.importBatchSizeBytes || 0) / (1024 * 1024))))} MB
-                </div>
-              </div>
-              <button
-                onClick={() => setShowImport((prev) => !prev)}
-                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 dark:text-gray-100 rounded text-sm"
-              >
-                {showImport ? 'Hide import' : 'Manage import'}
-              </button>
-            </div>
-            {showImport ? (
-              <>
-                {!config.importEnabled && (
-                  <div className="text-sm text-amber-600 dark:text-amber-400 mb-3">Import is disabled. Enable it in App Configuration.</div>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div className="md:col-span-2">
-                    <label className="block text-gray-600 dark:text-gray-300 mb-1">Log File</label>
-                    <input
-                      type="file"
-                      onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                      className="w-full"
-                      disabled={!config.importEnabled || importBusy}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-600 dark:text-gray-300 mb-1">Target Index</label>
-                    <input
-                      value={importIndex}
-                      onChange={(e) => setImportIndex(e.target.value)}
-                      placeholder="imported-logs-2026.01.27"
-                      className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded"
-                      disabled={!config.importEnabled || importBusy}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-600 dark:text-gray-300 mb-1">Parser Type</label>
-                    <select
-                      value={importParser}
-                      onChange={(e) => setImportParser(e.target.value as 'ndjson' | 'regex')}
-                      className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded"
-                      disabled={!config.importEnabled || importBusy}
-                    >
-                      <option value="ndjson">NDJSON</option>
-                      <option value="regex">Regex (named groups)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-gray-600 dark:text-gray-300 mb-1">Timestamp Field</label>
-                    <input
-                      value={importTimestampField}
-                      onChange={(e) => setImportTimestampField(e.target.value)}
-                      placeholder="@timestamp"
-                      className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded"
-                      disabled={!config.importEnabled || importBusy}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-600 dark:text-gray-300 mb-1">Timestamp Format</label>
-                    <input
-                      value={importTimestampFormat}
-                      onChange={(e) => setImportTimestampFormat(e.target.value)}
-                      placeholder="iso | epoch_ms | epoch_s"
-                      className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded"
-                      disabled={!config.importEnabled || importBusy}
-                    />
-                  </div>
-                  {importParser === 'regex' && (
-                    <div className="md:col-span-2">
-                      <label className="block text-gray-600 dark:text-gray-300 mb-1">Regex Pattern</label>
-                      <input
-                        value={importRegex}
-                        onChange={(e) => setImportRegex(e.target.value)}
-                        placeholder="(?<timestamp>...) (?<level>...) (?<message>...)"
-                        className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded"
-                        disabled={!config.importEnabled || importBusy}
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <button onClick={handleImportPreview} className="px-3 py-2 bg-gray-200 dark:bg-gray-700 dark:text-gray-100 rounded text-sm" disabled={!config.importEnabled || importBusy}>
-                    Preview
-                  </button>
-                  <button onClick={handleImportRun} className="px-3 py-2 bg-blue-600 text-white rounded text-sm" disabled={!config.importEnabled || importBusy}>
-                    Start Import
-                  </button>
-                  {importBusy && <span className="text-xs text-gray-500 dark:text-gray-400">Working...</span>}
-                </div>
-                {importPreview && (
-                  <div className="mt-4">
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                      Preview ({importPreview.samples.length} rows, {importPreview.errors} errors{importPreview.skipped ? `, ${importPreview.skipped} skipped` : ''})
-                    </div>
-                    <pre className="text-xs bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded p-3 overflow-auto max-h-48">{JSON.stringify(importPreview.samples, null, 2)}</pre>
-                  </div>
-                )}
-                {importStatus && (
-                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-300">
-                    <div>Status: {importStatus.status}</div>
-                    <div>Index: {importStatus.index}</div>
-                    <div>
-                      Lines: {importStatus.totalLines || 0} | Ingested: {importStatus.ingested || 0} | Failed: {importStatus.failed || 0}
-                      {importStatus.skipped ? ` | Skipped: ${importStatus.skipped}` : ''}
-                    </div>
-                    {importStatus.error && <div className="text-red-600">Error: {importStatus.error}</div>}
-                  </div>
-                )}
-                {importHistory.length > 0 && (
-                  <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-                    <div className="mb-2 font-medium text-gray-600 dark:text-gray-300">Recent Imports</div>
-                    <div className="space-y-1">
-                      {importHistory.slice(0, 5).map((job) => (
-                        <div key={job.id} className="flex flex-wrap gap-2 justify-between">
-                          <span>{job.fileName}</span>
-                          <span>{job.index}</span>
-                          <span>{job.status}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : null}
-          </section>
-        ) : null}
 
         <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3 mb-4">

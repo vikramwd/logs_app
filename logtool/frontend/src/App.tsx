@@ -4,6 +4,7 @@ import axios from 'axios';
 import LogSearchApp from './LogSearchApp';
 import AdminApp from './AdminApp';
 import HelpPage from './HelpPage';
+import UploadPage from './UploadPage';
 
 interface AuthUser {
   id: string;
@@ -253,8 +254,14 @@ function AppRoutes({
 }) {
   const location = useLocation();
   const onAdminRoute = location.pathname.startsWith('/admin');
+  const onUploadRoute = location.pathname.startsWith('/upload');
+  const adminTtlMinutes = Number(import.meta.env.VITE_ADMIN_SESSION_TTL_MINUTES || 5);
+  const adminTtlMs = (Number.isFinite(adminTtlMinutes) && adminTtlMinutes > 0 ? adminTtlMinutes : 5) * 60 * 1000;
+  const adminAuth = sessionStorage.getItem('adminAuth') || localStorage.getItem('adminAuth') || '';
+  const adminTs = Number(sessionStorage.getItem('adminAuthAt') || localStorage.getItem('adminAuthAt') || '');
+  const hasAdminSession = Boolean(adminAuth && adminTs && Date.now() - adminTs <= adminTtlMs);
 
-  if (authEnabled && !token && !onAdminRoute) {
+  if (authEnabled && !token && !onAdminRoute && !(onUploadRoute && hasAdminSession)) {
     return <Login onLogin={onLogin} brandLogoDataUrl={brandLogoDataUrl} brandLogoSize={brandLogoSize} />;
   }
 
@@ -266,6 +273,10 @@ function AppRoutes({
     <Routes>
       <Route path="/" element={<LogSearchApp user={user} onLogout={onLogout} authEnabled={authEnabled} />} />
       <Route path="/help" element={<HelpPage />} />
+      <Route
+        path="/upload"
+        element={<UploadPage authEnabled={Boolean(authEnabled)} userRole={user?.role} />}
+      />
       <Route path="/admin" element={<AdminApp />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

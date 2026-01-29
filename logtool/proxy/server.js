@@ -1944,6 +1944,8 @@ app.get('/api/config', (req, res) => {
     customUrls: appConfig.customUrls || [],
     motdEnabled,
     motdMessage,
+    importEnabled: process.env.IMPORT_ENABLED === 'true',
+    importUiVisible: IMPORT_UI_VISIBLE,
     helpQuickTips: appConfig.helpQuickTips || DEFAULT_CONFIG.helpQuickTips,
     helpSections: appConfig.helpSections || DEFAULT_CONFIG.helpSections
   });
@@ -2015,6 +2017,77 @@ app.post('/api/team-bookmarks', (req, res) => {
     message: `Bookmark "${name}" added`
   });
   res.json(bookmark);
+});
+
+// User import (upload page)
+app.get('/api/import/history', (req, res) => {
+  res.json((importJobs.jobs || []).slice(0, 5));
+});
+
+app.get('/api/import/:id/status', (req, res) => {
+  const job = (importJobs.jobs || []).find((entry) => entry.id === req.params.id);
+  if (!job) return res.status(404).json({ error: 'Import job not found.' });
+  res.json(job);
+});
+
+app.post('/api/import/preview', upload.single('file'), async (req, res) => {
+  if (!appConfig.importEnabled) {
+    return res.status(403).json({ error: 'Import is disabled.' });
+  }
+  if (!req.file) {
+    return res.status(400).json({ error: 'File is required.' });
+  }
+  const options = getImportOptions(req);
+  if (options.error) {
+    fs.unlinkSync(req.file.path);
+    return res.status(400).json({ error: options.error });
+  }
+  try {
+    const preview = await buildImportPreview(req.file.path, options);
+    return res.json(preview);
+  } catch (error) {
+    return res.status(400).json({ error: 'Preview failed.', detail: error.message });
+  } finally {
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch {}
+  }
+});
+
+app.post('/api/import', upload.single('file'), async (req, res) => {
+  if (!appConfig.importEnabled) {
+    return res.status(403).json({ error: 'Import is disabled.' });
+  }
+  if (!req.file) {
+    return res.status(400).json({ error: 'File is required.' });
+  }
+  const options = getImportOptions(req);
+  if (options.error) {
+    fs.unlinkSync(req.file.path);
+    return res.status(400).json({ error: options.error });
+  }
+  const job = {
+    id: crypto.randomUUID(),
+    status: 'pending',
+    index: options.index,
+    parserType: options.parserType,
+    fileName: req.file.originalname,
+    createdAt: new Date().toISOString(),
+    totalLines: 0,
+    ingested: 0,
+    failed: 0,
+    skipped: 0
+  };
+  registerImportJob(job);
+  res.json({ id: job.id });
+  runImportJob(job, {
+    filePath: req.file.path,
+    index: options.index,
+    parserType: options.parserType,
+    regexPattern: options.regexPattern,
+    timestampField: options.timestampField,
+    timestampFormat: options.timestampFormat
+  });
 });
 
 app.delete('/api/team-bookmarks/:id', (req, res) => {
