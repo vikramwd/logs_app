@@ -41,6 +41,8 @@ interface AppConfig {
   brandLogoSizeUser: 'sm' | 'md' | 'lg';
   brandLogoSizeAdmin: 'sm' | 'md' | 'lg';
   customUrls?: { id: string; name: string; url: string }[];
+  motdEnabled?: boolean;
+  motdMessage?: string;
 }
 
 interface TeamBookmark {
@@ -132,6 +134,8 @@ function LogSearchApp({ user, onLogout, authEnabled }: { user: { username: strin
   const [brandName, setBrandName] = useState('');
   const [brandLogoDataUrl, setBrandLogoDataUrl] = useState('');
   const [brandLogoSizeUser, setBrandLogoSizeUser] = useState<'sm' | 'md' | 'lg'>('md');
+  const [motdEnabled, setMotdEnabled] = useState(false);
+  const [motdMessage, setMotdMessage] = useState('');
   const [weeklyEngagement, setWeeklyEngagement] = useState<WeeklyEngagement | null>(null);
   const [featureAccess, setFeatureAccess] = useState<{ exports: boolean; bookmarks: boolean; rules: boolean; queryBuilder: boolean; limitTo7Days: boolean; piiUnmasked: boolean; showFullResults: boolean }>({
     exports: true,
@@ -225,6 +229,8 @@ function LogSearchApp({ user, onLogout, authEnabled }: { user: { username: strin
         setBrandLogoDataUrl(config.brandLogoDataUrl || '');
         setBrandLogoSizeUser(config.brandLogoSizeUser === 'sm' || config.brandLogoSizeUser === 'lg' ? config.brandLogoSizeUser : 'md');
         setCustomUrls(Array.isArray(config.customUrls) ? config.customUrls : []);
+        setMotdEnabled(Boolean(config.motdEnabled));
+        setMotdMessage(config.motdMessage || '');
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 401) {
           if (authEnabled) onLogout();
@@ -1046,6 +1052,15 @@ function LogSearchApp({ user, onLogout, authEnabled }: { user: { username: strin
             </button>
           </div>
         </div>
+
+        {motdEnabled && motdMessage && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-100 px-4 py-3 text-sm">
+            <div className="flex items-start gap-2">
+              <span className="text-base">📣</span>
+              <div className="leading-relaxed">{motdMessage}</div>
+            </div>
+          </div>
+        )}
 
         {customUrls.length > 0 && (
           <div className="mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-3">

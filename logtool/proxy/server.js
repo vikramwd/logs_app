@@ -30,6 +30,7 @@ const TEAMS_PATH = path.join(DATA_DIR, 'teams.json');
 const HEALTH_HISTORY_PATH = path.join(DATA_DIR, 'health-history.json');
 const IMPORT_JOBS_PATH = path.join(DATA_DIR, 'import-jobs.json');
 const IMPORT_INDICES_PATH = path.join(DATA_DIR, 'import-indices.json');
+const MOTD_TEMPLATES_PATH = path.join(DATA_DIR, 'motd-templates.json');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const ACCESS_LOG_PATH = path.join(DATA_DIR, 'access.log');
 const ERROR_LOG_PATH = path.join(DATA_DIR, 'error.log');
@@ -102,6 +103,8 @@ const DEFAULT_CONFIG = {
   brandLogoDataUrl: '',
   brandLogoSizeUser: 'md',
   brandLogoSizeAdmin: 'md',
+  motdEnabled: false,
+  motdMessage: '',
   teamIndexAccess: {},
   userIndexAccess: {},
   customUrls: [],
@@ -165,6 +168,8 @@ let teams = loadJson(TEAMS_PATH, { teams: [] });
 let healthHistory = loadJson(HEALTH_HISTORY_PATH, { history: [] });
 let importJobs = loadJson(IMPORT_JOBS_PATH, { jobs: [] });
 let importIndices = loadJson(IMPORT_INDICES_PATH, { indices: [] });
+let motdTemplates = normalizeMotdTemplates(loadJson(MOTD_TEMPLATES_PATH, { templates: [] }));
+saveJson(MOTD_TEMPLATES_PATH, motdTemplates);
 
 const tokenStore = new Map();
 const responseCache = new Map();
@@ -192,6 +197,20 @@ function normalizeTeamBookmarks(data) {
       team: b.team ? String(b.team).trim() : undefined,
       createdAt: b.createdAt || new Date().toISOString()
     })).filter((b) => b.name && b.query)
+  };
+}
+
+function normalizeMotdTemplates(data) {
+  const list = Array.isArray(data.templates) ? data.templates : [];
+  return {
+    templates: list.map((entry) => ({
+      id: entry.id || crypto.randomUUID(),
+      category: String(entry.category || 'general').trim() || 'general',
+      title: String(entry.title || '').trim(),
+      message: String(entry.message || '').trim(),
+      enabled: entry.enabled !== false,
+      createdAt: entry.createdAt || new Date().toISOString()
+    })).filter((entry) => entry.title && entry.message)
   };
 }
 
@@ -1777,6 +1796,17 @@ app.get('/api/config', (req, res) => {
   const defaultIndexPattern = appConfig.defaultIndexPattern && (!user || user.role === 'admin' || isIndexPatternAllowed(user, appConfig.defaultIndexPattern))
     ? appConfig.defaultIndexPattern
     : (indexOptions[0] ? String(indexOptions[0]).split('|')[0].trim() : '');
+  let motdEnabled = Boolean(appConfig.motdEnabled);
+  let motdMessage = appConfig.motdMessage || '';
+  if (!motdMessage) {
+    const enabledTemplates = motdTemplates.templates.filter((entry) => entry.enabled);
+    if (enabledTemplates.length > 0) {
+      const dayKey = Math.floor(Date.now() / 86400000);
+      const selected = enabledTemplates[dayKey % enabledTemplates.length];
+      motdEnabled = true;
+      motdMessage = selected.message;
+    }
+  }
   res.json({
     defaultIndexPattern,
     indexOptions,
@@ -1791,7 +1821,9 @@ app.get('/api/config', (req, res) => {
     brandLogoDataUrl: appConfig.brandLogoDataUrl || '',
     brandLogoSizeUser: appConfig.brandLogoSizeUser || 'md',
     brandLogoSizeAdmin: appConfig.brandLogoSizeAdmin || 'md',
-    customUrls: appConfig.customUrls || []
+    customUrls: appConfig.customUrls || [],
+    motdEnabled,
+    motdMessage
   });
 });
 
@@ -2302,6 +2334,8 @@ app.put('/api/admin/config', (req, res) => {
   if (req.body?.customUrls !== undefined && Array.isArray(req.body.customUrls)) {
     next.customUrls = req.body.customUrls;
   }
+  if (req.body?.motdEnabled !== undefined) next.motdEnabled = Boolean(req.body.motdEnabled);
+  if (req.body?.motdMessage !== undefined) next.motdMessage = String(req.body.motdMessage);
   if (req.body?.defaultIndexPattern !== undefined) next.defaultIndexPattern = String(req.body.defaultIndexPattern).trim();
   if (req.body?.indexOptions !== undefined && Array.isArray(req.body.indexOptions)) {
     next.indexOptions = req.body.indexOptions;
@@ -2568,6 +2602,17 @@ app.put('/api/admin/rules', (req, res) => {
   saveJson(RULES_PATH, rules);
   logActivity('alert_rules_update', { user: 'admin', ip: req.ip, message: 'Alert rules updated' });
   res.json(rules.rules);
+});
+
+app.get('/api/admin/motd-templates', (req, res) => {
+  res.json(motdTemplates.templates || []);
+});
+
+app.put('/api/admin/motd-templates', (req, res) => {
+  const incoming = Array.isArray(req.body) ? req.body : [];
+  motdTemplates = normalizeMotdTemplates({ templates: incoming });
+  saveJson(MOTD_TEMPLATES_PATH, motdTemplates);
+  res.json(motdTemplates.templates);
 });
 
 app.get('/api/admin/team-bookmarks', (req, res) => {
