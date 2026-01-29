@@ -55,3 +55,18 @@ admin:
 
 defaultIndexPattern: "mains"
 authTokenTtlMinutes: "10080"
+
+rbac:
+  enabled: false
+  targetNamespace: "opensearch"
+  subjectName: "default"
+  subjectNamespace: "default"
+  roleName: "logsearch-secret-writer"
+  bindingName: "logsearch-secret-writer"
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch

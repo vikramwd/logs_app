@@ -1,0 +1,32 @@
+{{- if .Values.rbac.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Values.rbac.roleName | quote }}
+  namespace: {{ .Values.rbac.targetNamespace | quote }}
+  labels:
+    app: {{ include "logsearch.name" . }}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs:
+{{- range .Values.rbac.verbs }}
+      - {{ . | quote }}
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.rbac.bindingName | quote }}
+  namespace: {{ .Values.rbac.targetNamespace | quote }}
+  labels:
+    app: {{ include "logsearch.name" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.rbac.subjectName | quote }}
+    namespace: {{ .Values.rbac.subjectNamespace | quote }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Values.rbac.roleName | quote }}
+{{- end }}
