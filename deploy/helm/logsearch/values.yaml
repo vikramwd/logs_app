@@ -1,7 +1,7 @@
 replicaCount: 1
 
 namespace:
-  name: "logsearch"
+  name: "opensearch"
   create: true
 
 image:
@@ -38,7 +38,7 @@ persistence:
   size: 10Gi
 
 opensearch:
-  host: "CHANGE_ME"
+  host: ""
   port: "9200"
   scheme: "http"
   insecureSSL: "false"
@@ -53,5 +53,5 @@ admin:
   useSecret: true
   secretName: "logsearch-admin"
 
-defaultIndexPattern: "mains-*"
+defaultIndexPattern: "mains"
 authTokenTtlMinutes: "10080"

@@ -36,8 +36,8 @@ spec:
     BUILD_CONTEXT = 'logtool'
     DOCKERFILE = 'logtool/Dockerfile.single'
     RELEASE_NAME = 'logsearch'
-    CHART_DIR = 'helm/logsearch'
-    VALUES_FILE = 'helm/logsearch/values.yaml'
+    CHART_DIR = 'deploy/helm/logsearch'
+    VALUES_FILE = 'deploy/helm/logsearch/values.yaml'
     KUBE_CONTEXT = ''
   }
 

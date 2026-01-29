@@ -14,7 +14,7 @@
 
 ## Installing
 
-Once you've added this Helm repository as per the repository-level [README](../../README.md#installing)
+Once you've added this Helm repository as per the repository-level [README](../../../README.md#installing)
 then you can install the chart as follows:
 
 ```shell
