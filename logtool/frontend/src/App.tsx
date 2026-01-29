@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import LogSearchApp from './LogSearchApp';
 import AdminApp from './AdminApp';
+import HelpPage from './HelpPage';
 
 interface AuthUser {
   id: string;
@@ -264,6 +265,7 @@ function AppRoutes({
   return (
     <Routes>
       <Route path="/" element={<LogSearchApp user={user} onLogout={onLogout} authEnabled={authEnabled} />} />
+      <Route path="/help" element={<HelpPage />} />
       <Route path="/admin" element={<AdminApp />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

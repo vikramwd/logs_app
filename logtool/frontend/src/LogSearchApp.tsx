@@ -1,5 +1,6 @@
 // frontend/src/LogSearchApp.tsx
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { subMinutes, startOfToday, subHours, subDays, formatISO } from 'date-fns';
 import JsonHighlighter from './components/SyntaxHighlighter';
@@ -1050,6 +1051,12 @@ function LogSearchApp({ user, onLogout, authEnabled }: { user: { username: strin
             <button onClick={clearAllSearches} className="px-3 py-1 rounded bg-red-600 text-white text-sm hover:bg-red-700" title="Clear recent searches & bookmarks">
               🧹 Clear
             </button>
+            <Link
+              to="/help"
+              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white text-sm"
+            >
+              Help
+            </Link>
           </div>
         </div>
 
