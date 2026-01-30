@@ -54,12 +54,21 @@ spec:
   }
 
   stages {
+    stage('Resolve Branch') {
+      steps {
+        script {
+          // Normalize branch name in case plugin returns origin/branch
+          env.RESOLVED_BRANCH = params.GIT_BRANCH.replaceFirst(/^origin\//, '')
+        }
+      }
+    }
+
     stage('Validate Branch') {
       steps {
         withCredentials([usernamePassword(credentialsId: env.GIT_CREDENTIALS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
           sh '''
             set -e
-            git ls-remote --heads https://${GIT_USER}:${GIT_TOKEN}@github.com/vikramwd/logs_app.git "refs/heads/${GIT_BRANCH}" | grep -q "${GIT_BRANCH}"
+            git ls-remote --heads https://${GIT_USER}:${GIT_TOKEN}@github.com/vikramwd/logs_app.git "refs/heads/${RESOLVED_BRANCH}" | grep -q "${RESOLVED_BRANCH}"
           '''
         }
       }
@@ -69,7 +78,7 @@ spec:
       steps {
         checkout([
           $class: 'GitSCM',
-          branches: [[name: "*/${params.GIT_BRANCH}"]],
+          branches: [[name: "*/${env.RESOLVED_BRANCH}"]],
           userRemoteConfigs: [[url: env.GIT_URL, credentialsId: env.GIT_CREDENTIALS_ID]]
         ])
       }
