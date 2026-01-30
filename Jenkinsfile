@@ -29,6 +29,18 @@ spec:
     }
   }
 
+  parameters {
+    gitParameter(
+      name: 'GIT_BRANCH',
+      type: 'PT_BRANCH',
+      defaultValue: 'main',
+      branchFilter: 'origin/(.*)',
+      sortMode: 'ASCENDING',
+      useRepository: 'https://github.com/vikramwd/logs_app.git',
+      description: 'Git branch to use for checkout/build'
+    )
+  }
+
   environment {
     GIT_URL = 'https://github.com/vikramwd/logs_app.git'
     GIT_CREDENTIALS_ID = 'gh_pat'
@@ -42,11 +54,22 @@ spec:
   }
 
   stages {
+    stage('Validate Branch') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: env.GIT_CREDENTIALS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+          sh '''
+            set -e
+            git ls-remote --heads https://${GIT_USER}:${GIT_TOKEN}@github.com/vikramwd/logs_app.git "refs/heads/${GIT_BRANCH}" | grep -q "${GIT_BRANCH}"
+          '''
+        }
+      }
+    }
+
     stage('Checkout') {
       steps {
         checkout([
           $class: 'GitSCM',
-          branches: [[name: '*/main']],
+          branches: [[name: "*/${params.GIT_BRANCH}"]],
           userRemoteConfigs: [[url: env.GIT_URL, credentialsId: env.GIT_CREDENTIALS_ID]]
         ])
       }
