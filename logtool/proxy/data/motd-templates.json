@@ -1,3 +1,68 @@
 {
-  "templates": []
+  "templates": [
+    {
+      "id": "motd-maintenance",
+      "category": "ops",
+      "title": "Planned maintenance",
+      "message": "Planned maintenance tonight 02:00–03:00 UTC. Searches may be slow.",
+      "enabled": true,
+      "createdAt": "2026-01-30T00:00:00.000Z"
+    },
+    {
+      "id": "motd-incident",
+      "category": "ops",
+      "title": "Incident update",
+      "message": "We’re investigating elevated error rates in api. Updates every 30 minutes.",
+      "enabled": true,
+      "createdAt": "2026-01-30T00:00:00.000Z"
+    },
+    {
+      "id": "motd-feature-rollout",
+      "category": "release",
+      "title": "Feature rollout",
+      "message": "New: Query Builder improvements are live. Try the Exact mode toggle.",
+      "enabled": true,
+      "createdAt": "2026-01-30T00:00:00.000Z"
+    },
+    {
+      "id": "motd-data-delay",
+      "category": "ops",
+      "title": "Data delay",
+      "message": "Log ingestion delay: ~15 minutes behind real time. Working on backlog.",
+      "enabled": true,
+      "createdAt": "2026-01-30T00:00:00.000Z"
+    },
+    {
+      "id": "motd-policy",
+      "category": "security",
+      "title": "Policy reminder",
+      "message": "Reminder: Exporting production PII is restricted. Use masked fields.",
+      "enabled": true,
+      "createdAt": "2026-01-30T00:00:00.000Z"
+    },
+    {
+      "id": "motd-release",
+      "category": "release",
+      "title": "Release notice",
+      "message": "Release 1.8 deployed. See Admin FAQs → Release Notes.",
+      "enabled": true,
+      "createdAt": "2026-01-30T00:00:00.000Z"
+    },
+    {
+      "id": "motd-index-change",
+      "category": "data",
+      "title": "Index change",
+      "message": "New index pattern app-logs-* available. Update your saved searches.",
+      "enabled": true,
+      "createdAt": "2026-01-30T00:00:00.000Z"
+    },
+    {
+      "id": "motd-downtime-complete",
+      "category": "ops",
+      "title": "Maintenance complete",
+      "message": "Maintenance complete. All systems normal.",
+      "enabled": true,
+      "createdAt": "2026-01-30T00:00:00.000Z"
+    }
+  ]
 }
