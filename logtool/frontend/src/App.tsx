@@ -5,6 +5,7 @@ import LogSearchApp from './LogSearchApp';
 import AdminApp from './AdminApp';
 import HelpPage from './HelpPage';
 import UploadPage from './UploadPage';
+import AdminFaqsPage from './AdminFaqsPage';
 
 interface AuthUser {
   id: string;
@@ -350,6 +351,7 @@ function AppRoutes({
         path="/upload"
         element={<UploadPage authEnabled={Boolean(authEnabled)} userRole={user?.role} />}
       />
+      <Route path="/admin-faqs" element={<AdminFaqsPage />} />
       <Route path="/admin" element={<AdminApp />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

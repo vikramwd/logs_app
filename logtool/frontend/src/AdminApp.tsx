@@ -806,6 +806,7 @@ function AdminApp() {
     localStorage.setItem('adminShowToggles', showFeatureToggles ? 'true' : 'false');
   }, [showFeatureToggles]);
 
+
   useEffect(() => {
     if (!authed) return;
     const loadServerTime = async () => {
@@ -1550,6 +1551,12 @@ function AdminApp() {
             <button onClick={() => setAdminDarkMode(!adminDarkMode)} className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100">
               {adminDarkMode ? '☀️' : '🌙'}
             </button>
+            <Link
+              to="/admin-faqs"
+              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100"
+            >
+              Admin FAQs
+            </Link>
             <Link
               to="/upload"
               target="_blank"
