@@ -31,6 +31,7 @@ const HEALTH_HISTORY_PATH = path.join(DATA_DIR, 'health-history.json');
 const IMPORT_JOBS_PATH = path.join(DATA_DIR, 'import-jobs.json');
 const IMPORT_INDICES_PATH = path.join(DATA_DIR, 'import-indices.json');
 const MOTD_TEMPLATES_PATH = path.join(DATA_DIR, 'motd-templates.json');
+const ADMIN_FAQS_PATH = path.join(DATA_DIR, 'admin-faqs.json');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const ACCESS_LOG_PATH = path.join(DATA_DIR, 'access.log');
 const ERROR_LOG_PATH = path.join(DATA_DIR, 'error.log');
@@ -219,6 +220,128 @@ const DEFAULT_CONFIG = {
       ]
     }
   ],
+  adminFaqSections: [
+    {
+      id: 'login-sessions',
+      title: 'Login & Sessions',
+      items: [
+        { q: 'Why did I get logged out?', a: 'Admin sessions expire after the configured TTL. Log in again from /admin.' },
+        { q: 'Can I open multiple admin tabs?', a: 'Yes, but inactivity may expire the session. Use Refresh in the admin header if needed.' }
+      ]
+    },
+    {
+      id: 'motd',
+      title: 'Message of the Day',
+      items: [
+        { q: 'How do I publish a MOTD?', a: 'Go to Admin → Message of the Day, enter the message, and click Save MOTD.' },
+        { q: 'Why does MOTD not show on login?', a: 'Ensure a non-empty message is saved, then refresh the login page.' },
+        { q: 'Where is MOTD shown?', a: 'It appears on the user login page and at the top of the logged-in user UI.' }
+      ]
+    },
+    {
+      id: 'index-management',
+      title: 'Index Management',
+      items: [
+        { q: 'How do I set the default index pattern?', a: 'Use Admin → Index Management and set the default pattern at the top.' },
+        { q: 'How do overrides work?', a: 'Overrides apply by exact pattern match and can set time field and search fields.' },
+        { q: 'Why can’t a user see an index?', a: 'Check Team/User index access rules and feature toggles for that team.' }
+      ]
+    },
+    {
+      id: 'app-config',
+      title: 'App Configuration',
+      items: [
+        { q: 'How do I change the time zone?', a: 'Update Time Zone in App Configuration and click Save Config.' },
+        { q: 'How do I limit export size?', a: 'Set Max Export Size in App Configuration to enforce a cap.' },
+        { q: 'How do I change default dark mode?', a: 'Toggle Dark mode default in App Configuration and save.' },
+        { q: 'How do Field Explorer fields work?', a: 'List fields (one per line). These become quick field filters in the UI.' }
+      ]
+    },
+    {
+      id: 'branding',
+      title: 'Branding',
+      items: [
+        { q: 'How do I update the logo?', a: 'Use Branding → Upload Logo and then Save Branding.' },
+        { q: 'Why is the logo too large/small?', a: 'Adjust Logo Size (User/Admin) and save.' }
+      ]
+    },
+    {
+      id: 'users-roles',
+      title: 'Users & Roles',
+      items: [
+        { q: 'How do I add a user?', a: 'Go to Admin → Users, fill in the form, then click Create User.' },
+        { q: 'What roles exist?', a: 'Admins manage config and users; viewers have limited actions based on toggles.' },
+        { q: 'How do I reset access?', a: 'Update the user and save; logout/login may be required for changes to apply.' }
+      ]
+    },
+    {
+      id: 'teams-access',
+      title: 'Teams & Access',
+      items: [
+        { q: 'How do I create a team?', a: 'Go to Admin → Teams and create a new team.' },
+        { q: 'How do I restrict index access?', a: 'Use User/Team Index Access in App Configuration to limit patterns.' },
+        { q: 'How do team bookmarks work?', a: 'Team bookmarks are shared across team members when enabled.' }
+      ]
+    },
+    {
+      id: 'feature-toggles',
+      title: 'Feature Toggles',
+      items: [
+        { q: 'How do toggles work?', a: 'Toggles are per team. Disable exports/bookmarks/rules/query builder as needed.' },
+        { q: 'Why does a user not see a feature?', a: 'Check their team’s toggles in Admin → Feature Toggles.' }
+      ]
+    },
+    {
+      id: 'alert-rules',
+      title: 'Alert Rules',
+      items: [
+        { q: 'How do alert rules trigger?', a: 'Rules evaluate query matches per window and send email when threshold is exceeded.' },
+        { q: 'Why is alert email not sent?', a: 'Verify SMTP settings and alert recipients in App Configuration.' }
+      ]
+    },
+    {
+      id: 'opensearch',
+      title: 'OpenSearch Connection & Diagnostics',
+      items: [
+        { q: 'How do I update the OpenSearch host?', a: 'Go to Admin → OpenSearch Connection and Save.' },
+        { q: 'What does the OS status mean?', a: 'Green is healthy, yellow is warning, red is unhealthy.' },
+        { q: 'Why is connection failing?', a: 'Check host/port/scheme and credentials; test connection after saving.' }
+      ]
+    },
+    {
+      id: 'imports',
+      title: 'Log Imports',
+      items: [
+        { q: 'Why is Upload hidden?', a: 'Check Import settings in App Configuration and ensure Import UI is enabled.' },
+        { q: 'Where do import indices go?', a: 'Imports go to the target index you specify; auto-created import indices can be retained for 7 days.' },
+        { q: 'Why does upload fail?', a: 'Check file size limits, parser type, and required fields.' }
+      ]
+    },
+    {
+      id: 'backup-restore',
+      title: 'Backup & Restore',
+      items: [
+        { q: 'What does Backup include?', a: 'Config, users, teams, feature toggles, rules, and bookmarks.' },
+        { q: 'How do I restore?', a: 'Use Backup & Restore in Admin and upload a valid JSON backup.' }
+      ]
+    },
+    {
+      id: 'custom-urls',
+      title: 'Custom URLs',
+      items: [
+        { q: 'How do custom URLs show up?', a: 'They appear below the user header as quick links after saving.' },
+        { q: 'Why is a link missing?', a: 'Ensure the name and URL are set and saved in Admin.' }
+      ]
+    },
+    {
+      id: 'maintenance',
+      title: 'Maintenance & Restart',
+      items: [
+        { q: 'When should I restart services?', a: 'After config changes to OpenSearch/proxy behavior or when instructed by ops.' },
+        { q: 'What does Restart do?', a: 'It restarts proxy (or proxy+frontend) without changing config.' }
+      ]
+    }
+  ],
   teamIndexAccess: {},
   userIndexAccess: {},
   customUrls: [],
@@ -284,6 +407,8 @@ let importJobs = loadJson(IMPORT_JOBS_PATH, { jobs: [] });
 let importIndices = loadJson(IMPORT_INDICES_PATH, { indices: [] });
 let motdTemplates = normalizeMotdTemplates(loadJson(MOTD_TEMPLATES_PATH, { templates: [] }));
 saveJson(MOTD_TEMPLATES_PATH, motdTemplates);
+let adminFaqs = normalizeAdminFaqs(loadJson(ADMIN_FAQS_PATH, { sections: DEFAULT_CONFIG.adminFaqSections }));
+saveJson(ADMIN_FAQS_PATH, adminFaqs);
 
 const tokenStore = new Map();
 const responseCache = new Map();
@@ -311,6 +436,31 @@ function normalizeTeamBookmarks(data) {
       team: b.team ? String(b.team).trim() : undefined,
       createdAt: b.createdAt || new Date().toISOString()
     })).filter((b) => b.name && b.query)
+  };
+}
+
+function normalizeAdminFaqs(data) {
+  const list = Array.isArray(data.sections) ? data.sections : [];
+  return {
+    sections: list
+      .map((section) => {
+        if (!section) return null;
+        const title = String(section.title || '').trim();
+        if (!title) return null;
+        const items = Array.isArray(section.items)
+          ? section.items
+            .map((item) => {
+              if (!item) return null;
+              const q = String(item.q || '').trim();
+              const a = String(item.a || '').trim();
+              if (!q || !a) return null;
+              return { q, a };
+            })
+            .filter(Boolean)
+          : [];
+        return { id: section.id || crypto.randomUUID(), title, items };
+      })
+      .filter(Boolean)
   };
 }
 
@@ -2808,6 +2958,10 @@ app.put('/api/admin/motd-templates', (req, res) => {
   motdTemplates = normalizeMotdTemplates({ templates: incoming });
   saveJson(MOTD_TEMPLATES_PATH, motdTemplates);
   res.json(motdTemplates.templates);
+});
+
+app.get('/api/admin/admin-faqs', (req, res) => {
+  res.json(adminFaqs.sections || []);
 });
 
 app.get('/api/admin/team-bookmarks', (req, res) => {
