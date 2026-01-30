@@ -1272,6 +1272,55 @@ function logError(label, detail) {
   fs.appendFile(ERROR_LOG_PATH, line, () => {});
 }
 
+function redactSensitive(text) {
+  if (!text) return text;
+  let value = String(text);
+  value = value.replace(/(authorization\s*[:=]\s*)([^\s"']+)/gi, '$1***');
+  value = value.replace(/(bearer\s+)([^\s"']+)/gi, '$1***');
+  value = value.replace(/(basic\s+)([^\s"']+)/gi, '$1***');
+  value = value.replace(/("?(password|pass|token|apiKey|api_key|secret|access_token|refresh_token)"?\s*[:=]\s*")([^"]*)(")/gi, '$1***$4');
+  value = value.replace(/(https?:\/\/)([^\/:@\s]+):([^@\s]+)@/gi, '$1***:***@');
+  value = value.replace(/(\bhttps?:\/\/[^\s?]+)\?([^\s]+)/gi, '$1?<redacted>');
+  value = value.replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '***@***');
+  return value;
+}
+
+function redactObject(value) {
+  if (Array.isArray(value)) return value.map(redactObject);
+  if (value && typeof value === 'object') {
+    const next = {};
+    for (const [key, raw] of Object.entries(value)) {
+      if (/(password|pass|token|secret|auth|authorization|cookie|session|key|credential|email|user|username|name)/i.test(key)) {
+        next[key] = '***';
+      } else {
+        next[key] = redactObject(raw);
+      }
+    }
+    return next;
+  }
+  if (typeof value === 'string') return redactSensitive(value);
+  return value;
+}
+
+function sanitizeLogLine(line) {
+  if (!line) return line;
+  const label = line.split(' ', 3)[1] || '';
+  if (['search', 'index-stats', 'time-fields'].includes(label)) {
+    return null;
+  }
+  const start = line.indexOf('{');
+  if (start === -1) return redactSensitive(line);
+  const prefix = line.slice(0, start);
+  const payload = line.slice(start);
+  try {
+    const parsed = JSON.parse(payload);
+    const redacted = redactObject(parsed);
+    return `${prefix}${JSON.stringify(redacted)}`;
+  } catch {
+    return redactSensitive(line);
+  }
+}
+
 function getImportOptions(req) {
   const index = String(req.body?.index || '').trim();
   const parserType = req.body?.parserType === 'regex' ? 'regex' : 'ndjson';
@@ -2013,6 +2062,14 @@ pollHealthSnapshot();
 
 app.get('/api/auth/status', (req, res) => {
   res.json({ enabled: authEnabled() });
+});
+
+app.get('/api/ip', (req, res) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  const ip = Array.isArray(forwarded)
+    ? forwarded[0]
+    : (forwarded ? String(forwarded).split(',')[0].trim() : '');
+  res.json({ ip: ip || req.ip || req.connection?.remoteAddress || 'unknown' });
 });
 
 app.post('/api/auth/login', (req, res) => {
@@ -2762,6 +2819,18 @@ app.get('/api/admin/health-trend', (req, res) => {
   res.json({ hours: getHealthTrend(24) });
 });
 
+app.get('/api/admin/error-log', adminAuth, async (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query?.lines || 800), 1), 1000);
+  try {
+    const data = await fs.promises.readFile(ERROR_LOG_PATH, 'utf8');
+    const lines = data.split('\n').filter(Boolean);
+    const sanitized = lines.slice(-limit).map(sanitizeLogLine).filter(Boolean);
+    res.json({ lines: sanitized });
+  } catch {
+    res.json({ lines: [] });
+  }
+});
+
 app.get('/api/admin/indexes', async (req, res) => {
   const refresh = String(req.query?.refresh || '') === 'true';
   if (!refresh && indexCache.value && Date.now() < indexCache.expiresAt) {
@@ -2772,10 +2841,26 @@ app.get('/api/admin/indexes', async (req, res) => {
       `${getOpensearchBaseUrl()}/_cat/indices`,
       {
         params: { format: 'json', bytes: 'b' },
+        headers: { Accept: 'application/json' },
         ...getOpensearchRequestOptions()
       }
     );
-    const indices = (response.data || []).map((item) => ({
+    const raw = response.data;
+    let items = raw;
+    if (typeof raw === 'string') {
+      try {
+        items = JSON.parse(raw);
+      } catch {
+        items = null;
+      }
+    }
+    if (!Array.isArray(items)) {
+      const type = items === null ? 'null' : typeof items;
+      const rawSnippet = typeof raw === 'string' ? raw.slice(0, 200) : null;
+      logError('index-stats', { detail: `Unexpected index stats payload: ${type}`, rawType: typeof raw, rawSnippet });
+      return res.status(502).json({ error: 'Failed to load index stats.' });
+    }
+    const indices = items.map((item) => ({
       index: item.index,
       health: item.health,
       status: item.status,
@@ -2797,6 +2882,10 @@ app.get('/api/admin/indexes', async (req, res) => {
     indexCache = { value: payload, expiresAt: Date.now() + INDEX_CACHE_TTL_MS };
     res.json({ ...payload, cached: false });
   } catch (err) {
+    const detail = axios.isAxiosError(err)
+      ? (err.response?.data?.error?.reason || err.response?.data?.error || err.response?.data)
+      : err.message;
+    logError('index-stats', { detail });
     res.status(500).json({ error: 'Failed to load index stats.' });
   }
 });

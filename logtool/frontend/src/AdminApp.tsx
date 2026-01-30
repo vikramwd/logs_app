@@ -290,6 +290,7 @@ function AdminApp() {
   const [authHeader, setAuthHeader] = useState<string>(() => getStoredAdminAuth());
   const [authed, setAuthed] = useState<boolean>(() => Boolean(getStoredAdminAuth()));
   const [adminUser, setAdminUser] = useState<string>(() => sessionStorage.getItem('adminUser') || '');
+  const [clientIp, setClientIp] = useState('');
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -638,6 +639,17 @@ function AdminApp() {
       loadAll();
     }
   }, [authed]);
+
+  useEffect(() => {
+    let alive = true;
+    axios.get('/api/ip').then((res) => {
+      if (!alive) return;
+      setClientIp(res.data?.ip || '');
+    }).catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!authed || !config.importEnabled) return;
@@ -1541,32 +1553,37 @@ function AdminApp() {
               <div className="text-xs text-gray-500 dark:text-gray-400">Admin Panel</div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 text-xs" title={`OpenSearch: ${osOk ? 'ok' : 'down'}`}>
-              <span className={`h-2 w-2 rounded-full ${osOk ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span className="text-gray-500 dark:text-gray-400">OS</span>
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 text-xs" title={`OpenSearch: ${osOk ? 'ok' : 'down'}`}>
+                <span className={`h-2 w-2 rounded-full ${osOk ? 'bg-green-500' : 'bg-red-500'}`} />
+                <span className="text-gray-500 dark:text-gray-400">OS</span>
+              </div>
+              {adminUser && <span className="text-xs text-gray-500 dark:text-gray-400">👤 {adminUser}</span>}
+              {serverTime && <span className="text-sm font-mono text-gray-600 dark:text-gray-300">🕒 {serverTime}</span>}
+              <button onClick={() => setAdminDarkMode(!adminDarkMode)} className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100 text-sm">
+                {adminDarkMode ? '☀️' : '🌙'}
+              </button>
+              <Link
+                to="/admin-faqs"
+                className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100 text-sm"
+              >
+                Admin FAQs
+              </Link>
+              <Link
+                to="/upload"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100 text-sm"
+              >
+                Upload
+              </Link>
+              <button onClick={loadAll} className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100 text-sm">Refresh</button>
+              <button onClick={handleLogout} className="px-3 py-1 rounded bg-red-600 text-white text-sm">Logout</button>
             </div>
-            {adminUser && <span className="text-xs text-gray-500 dark:text-gray-400">👤 {adminUser}</span>}
-            {serverTime && <span className="text-sm font-mono text-gray-600 dark:text-gray-300">🕒 {serverTime}</span>}
-            <button onClick={() => setAdminDarkMode(!adminDarkMode)} className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100">
-              {adminDarkMode ? '☀️' : '🌙'}
-            </button>
-            <Link
-              to="/admin-faqs"
-              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100"
-            >
-              Admin FAQs
-            </Link>
-            <Link
-              to="/upload"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100"
-            >
-              Upload
-            </Link>
-            <button onClick={loadAll} className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100">Refresh</button>
-            <button onClick={handleLogout} className="px-3 py-1 rounded bg-red-600 text-white">Logout</button>
+            {clientIp && (
+              <div className="text-xs text-gray-500 dark:text-gray-400">YourIP : {clientIp}</div>
+            )}
           </div>
         </div>
         {config.motdMessage && (

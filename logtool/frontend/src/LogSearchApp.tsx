@@ -149,6 +149,7 @@ function LogSearchApp({
   const [brandLogoSizeUser, setBrandLogoSizeUser] = useState<'sm' | 'md' | 'lg'>('md');
   const [motdEnabled, setMotdEnabled] = useState(() => Boolean(initialMotdEnabled));
   const [motdMessage, setMotdMessage] = useState(() => initialMotdMessage || '');
+  const [clientIp, setClientIp] = useState('');
   const [weeklyEngagement, setWeeklyEngagement] = useState<WeeklyEngagement | null>(null);
   const [featureAccess, setFeatureAccess] = useState<{ exports: boolean; bookmarks: boolean; rules: boolean; queryBuilder: boolean; limitTo7Days: boolean; piiUnmasked: boolean; showFullResults: boolean }>({
     exports: true,
@@ -1024,6 +1025,17 @@ function LogSearchApp({
     };
   }, [user]);
 
+  useEffect(() => {
+    let alive = true;
+    axios.get('/api/ip').then((res) => {
+      if (!alive) return;
+      setClientIp(res.data?.ip || '');
+    }).catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const getLogoSizeClass = (size: 'sm' | 'md' | 'lg') => {
     if (size === 'sm') return 'h-12 w-12';
     if (size === 'lg') return 'h-20 w-20';
@@ -1042,7 +1054,8 @@ function LogSearchApp({
             )}
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{brandName || 'WDTS Logging Solution'}</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-3">
             {user && (
               <>
                 <div className="flex items-center gap-1 text-xs" title={`OpenSearch: ${opensearchStatus === 'ok' ? 'ok' : 'down'}`}>
@@ -1077,6 +1090,10 @@ function LogSearchApp({
               <button onClick={onLogout} className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white text-sm">
                 Logout
               </button>
+            )}
+            </div>
+            {clientIp && (
+              <div className="text-xs text-gray-500 dark:text-gray-400">YourIP : {clientIp}</div>
             )}
           </div>
         </div>
