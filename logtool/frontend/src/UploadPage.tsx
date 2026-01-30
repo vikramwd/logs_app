@@ -17,13 +17,16 @@ interface ImportStatus {
 
 function UploadPage({ authEnabled, userRole }: { authEnabled: boolean; userRole?: string }) {
   const navigate = useNavigate();
+  const [adminDarkMode, setAdminDarkMode] = useState(() => {
+    const saved = localStorage.getItem('adminDarkMode');
+    return saved === null ? true : saved === 'true';
+  });
   const [importEnabled, setImportEnabled] = useState(false);
   const [importUiVisible, setImportUiVisible] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importIndex, setImportIndex] = useState('');
   const [importParser, setImportParser] = useState<'ndjson' | 'regex'>('ndjson');
   const [importTimestampField, setImportTimestampField] = useState('@timestamp');
-  const [importTimestampFormat, setImportTimestampFormat] = useState('');
   const [importRegex, setImportRegex] = useState('');
   const [importPreview, setImportPreview] = useState<{ samples: Record<string, any>[]; errors: number; skipped?: number; totalChecked: number } | null>(null);
   const [importBusy, setImportBusy] = useState(false);
@@ -31,6 +34,13 @@ function UploadPage({ authEnabled, userRole }: { authEnabled: boolean; userRole?
   const [importStatus, setImportStatus] = useState<ImportStatus | null>(null);
   const [importHistory, setImportHistory] = useState<ImportStatus[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/admin');
+    }
+  };
 
   useEffect(() => {
     axios.get('/api/config').then((res) => {
@@ -41,6 +51,20 @@ function UploadPage({ authEnabled, userRole }: { authEnabled: boolean; userRole?
       setImportUiVisible(false);
     });
   }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('adminDarkMode');
+    const next = saved === null ? true : saved === 'true';
+    setAdminDarkMode(next);
+  }, []);
+
+  useEffect(() => {
+    if (adminDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [adminDarkMode]);
 
   const adminTtlMinutes = Number(import.meta.env.VITE_ADMIN_SESSION_TTL_MINUTES || 5);
   const adminTtlMs = (Number.isFinite(adminTtlMinutes) && adminTtlMinutes > 0 ? adminTtlMinutes : 5) * 60 * 1000;
@@ -63,7 +87,6 @@ function UploadPage({ authEnabled, userRole }: { authEnabled: boolean; userRole?
     form.append('index', importIndex.trim());
     form.append('parserType', importParser);
     form.append('timestampField', importTimestampField.trim());
-    form.append('timestampFormat', importTimestampFormat.trim());
     if (importParser === 'regex') {
       form.append('regexPattern', importRegex.trim());
     }
@@ -152,11 +175,11 @@ function UploadPage({ authEnabled, userRole }: { authEnabled: boolean; userRole?
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 text-gray-800 dark:text-gray-100">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6 text-gray-800 dark:text-gray-100">
         <div className="max-w-2xl mx-auto">
           <div className="flex flex-wrap items-center gap-3 mb-6">
             <button
-              onClick={() => navigate(-1)}
+              onClick={handleBack}
               className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white text-sm"
             >
               Back
@@ -178,7 +201,7 @@ function UploadPage({ authEnabled, userRole }: { authEnabled: boolean; userRole?
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 md:p-6">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -189,7 +212,7 @@ function UploadPage({ authEnabled, userRole }: { authEnabled: boolean; userRole?
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={handleBack}
               className="px-3 py-2 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white text-sm"
             >
               Back
@@ -256,27 +279,16 @@ function UploadPage({ authEnabled, userRole }: { authEnabled: boolean; userRole?
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {importParser === 'regex' && (
                 <div>
-                  <label className="block text-gray-600 dark:text-gray-300 mb-1">Timestamp format (optional)</label>
+                  <label className="block text-gray-600 dark:text-gray-300 mb-1">Regex pattern</label>
                   <input
-                    value={importTimestampFormat}
-                    onChange={(e) => setImportTimestampFormat(e.target.value)}
+                    value={importRegex}
+                    onChange={(e) => setImportRegex(e.target.value)}
                     className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded"
-                    placeholder="YYYY-MM-DD HH:mm:ss"
                   />
                 </div>
-                {importParser === 'regex' && (
-                  <div>
-                    <label className="block text-gray-600 dark:text-gray-300 mb-1">Regex pattern</label>
-                    <input
-                      value={importRegex}
-                      onChange={(e) => setImportRegex(e.target.value)}
-                      className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded"
-                    />
-                  </div>
-                )}
-              </div>
+              )}
               {errorMessage && (
                 <div className="text-sm text-red-600">{errorMessage}</div>
               )}

@@ -99,7 +99,19 @@ interface PinnedFilter {
   value: string;
 }
 
-function LogSearchApp({ user, onLogout, authEnabled }: { user: { username: string; role: string; teams: string[] } | null; onLogout: () => void; authEnabled: boolean }) {
+function LogSearchApp({
+  user,
+  onLogout,
+  authEnabled,
+  initialMotdEnabled,
+  initialMotdMessage
+}: {
+  user: { username: string; role: string; teams: string[] } | null;
+  onLogout: () => void;
+  authEnabled: boolean;
+  initialMotdEnabled?: boolean;
+  initialMotdMessage?: string;
+}) {
   const [query, setQuery] = useState('');
   const [startDate, setStartDate] = useState<Date>(subHours(new Date(), 1));
   const [endDate, setEndDate] = useState<Date>(new Date());
@@ -135,8 +147,8 @@ function LogSearchApp({ user, onLogout, authEnabled }: { user: { username: strin
   const [brandName, setBrandName] = useState('');
   const [brandLogoDataUrl, setBrandLogoDataUrl] = useState('');
   const [brandLogoSizeUser, setBrandLogoSizeUser] = useState<'sm' | 'md' | 'lg'>('md');
-  const [motdEnabled, setMotdEnabled] = useState(false);
-  const [motdMessage, setMotdMessage] = useState('');
+  const [motdEnabled, setMotdEnabled] = useState(() => Boolean(initialMotdEnabled));
+  const [motdMessage, setMotdMessage] = useState(() => initialMotdMessage || '');
   const [weeklyEngagement, setWeeklyEngagement] = useState<WeeklyEngagement | null>(null);
   const [featureAccess, setFeatureAccess] = useState<{ exports: boolean; bookmarks: boolean; rules: boolean; queryBuilder: boolean; limitTo7Days: boolean; piiUnmasked: boolean; showFullResults: boolean }>({
     exports: true,
@@ -173,6 +185,15 @@ function LogSearchApp({ user, onLogout, authEnabled }: { user: { username: strin
     }, 1000);
     return () => clearInterval(timer);
   }, [timeZone, timeOffsetMs]);
+
+  useEffect(() => {
+    if (initialMotdEnabled !== undefined) {
+      setMotdEnabled(Boolean(initialMotdEnabled));
+    }
+    if (initialMotdMessage !== undefined) {
+      setMotdMessage(initialMotdMessage);
+    }
+  }, [initialMotdEnabled, initialMotdMessage]);
 
   // Load saved data
   useEffect(() => {
@@ -1043,11 +1064,6 @@ function LogSearchApp({ user, onLogout, authEnabled }: { user: { username: strin
             }} className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white text-sm">
               {darkMode ? '☀️' : '🌙'}
             </button>
-            {authEnabled && (
-              <button onClick={onLogout} className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white text-sm">
-                Logout
-              </button>
-            )}
             <button onClick={clearAllSearches} className="px-3 py-1 rounded bg-red-600 text-white text-sm hover:bg-red-700" title="Clear recent searches & bookmarks">
               🧹 Clear
             </button>
@@ -1057,6 +1073,11 @@ function LogSearchApp({ user, onLogout, authEnabled }: { user: { username: strin
             >
               Help
             </Link>
+            {authEnabled && (
+              <button onClick={onLogout} className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white text-sm">
+                Logout
+              </button>
+            )}
           </div>
         </div>
 
@@ -1472,6 +1493,7 @@ function LogSearchApp({ user, onLogout, authEnabled }: { user: { username: strin
             <p className="text-xs text-gray-500">No weekly data yet.</p>
           )}
         </div>
+
       </div>
     </div>
   );

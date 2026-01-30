@@ -24,15 +24,23 @@ function applyTheme(isDark: boolean) {
 function Login({
   onLogin,
   brandLogoDataUrl,
-  brandLogoSize
+  brandLogoSize,
+  motdEnabled,
+  motdMessage
 }: {
   onLogin: (token: string, user: AuthUser) => void;
   brandLogoDataUrl: string;
   brandLogoSize: 'sm' | 'md' | 'lg';
+  motdEnabled: boolean;
+  motdMessage: string;
 }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [motdState, setMotdState] = useState(() => ({
+    enabled: motdEnabled || localStorage.getItem('motdEnabled') === 'true',
+    message: motdMessage || localStorage.getItem('motdMessage') || ''
+  }));
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     return saved === null ? true : saved === 'true';
@@ -43,6 +51,28 @@ function Login({
     localStorage.setItem('darkMode', darkMode ? 'true' : 'false');
   }, [darkMode]);
 
+  useEffect(() => {
+    setMotdState({
+      enabled: motdEnabled || localStorage.getItem('motdEnabled') === 'true',
+      message: motdMessage || localStorage.getItem('motdMessage') || ''
+    });
+  }, [motdEnabled, motdMessage]);
+
+  useEffect(() => {
+    const loadMotd = async () => {
+      try {
+        const res = await axios.get('/api/config', { params: { _ts: Date.now() } });
+        const nextEnabled = Boolean(res.data?.motdEnabled);
+        const nextMessage = res.data?.motdMessage || '';
+        setMotdState({ enabled: nextEnabled, message: nextMessage });
+        localStorage.setItem('motdEnabled', nextEnabled ? 'true' : 'false');
+        localStorage.setItem('motdMessage', nextMessage);
+      } catch {
+        // keep existing state
+      }
+    };
+    loadMotd();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,34 +103,44 @@ function Login({
           Admin
         </button>
       </div>
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow-md border dark:border-gray-700 rounded-lg p-6 w-full max-w-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            {resolvedLogo ? (
-              <img
-                src={resolvedLogo}
-                alt="Brand logo"
-                className={`${resolvedSize === 'sm' ? 'h-12 w-12' : resolvedSize === 'lg' ? 'h-20 w-20' : 'h-16 w-16'} object-contain`}
-              />
-            ) : null}
-            <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">LogSearch Login</h1>
+      <div className="w-full max-w-sm">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow-md border dark:border-gray-700 rounded-lg p-6 w-full">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              {resolvedLogo ? (
+                <img
+                  src={resolvedLogo}
+                  alt="Brand logo"
+                  className={`${resolvedSize === 'sm' ? 'h-12 w-12' : resolvedSize === 'lg' ? 'h-20 w-20' : 'h-16 w-16'} object-contain`}
+                />
+              ) : null}
+              <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">LogSearch Login</h1>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDarkMode((prev) => !prev)}
+              className="px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white text-sm"
+              title="Toggle theme"
+            >
+              {darkMode ? '☀️' : '🌙'}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setDarkMode((prev) => !prev)}
-            className="px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white text-sm"
-            title="Toggle theme"
-          >
-            {darkMode ? '☀️' : '🌙'}
-          </button>
-        </div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Username</label>
-        <input value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded mb-3" />
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Password</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded mb-4" />
-        {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
-        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Sign in</button>
-      </form>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Username</label>
+          <input value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded mb-3" />
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Password</label>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded mb-4" />
+          {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Sign in</button>
+        </form>
+        {motdState.message && (
+          <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-100 px-4 py-3 text-sm">
+            <div className="flex items-start gap-2">
+              <span className="text-base">📣</span>
+              <div className="leading-relaxed">{motdState.message}</div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -126,6 +166,8 @@ function App() {
   });
   const [brandLogoDataUrl, setBrandLogoDataUrl] = useState('');
   const [brandLogoSizeUser, setBrandLogoSizeUser] = useState<'sm' | 'md' | 'lg'>('md');
+  const [motdEnabled, setMotdEnabled] = useState(() => localStorage.getItem('motdEnabled') === 'true');
+  const [motdMessage, setMotdMessage] = useState(() => localStorage.getItem('motdMessage') || '');
 
   useEffect(() => {
     axios.get('/api/auth/status')
@@ -147,14 +189,20 @@ function App() {
     }
     localStorage.setItem('darkMode', 'true');
     applyTheme(true);
-    axios.get('/api/config').then((res) => {
+    axios.get('/api/config', { params: { _ts: Date.now() } }).then((res) => {
       const isDark = res.data?.darkModeDefault === undefined ? true : Boolean(res.data?.darkModeDefault);
       const nextLogo = res.data?.brandLogoDataUrl || '';
       const nextSize = res.data?.brandLogoSizeUser === 'sm' || res.data?.brandLogoSizeUser === 'lg' ? res.data.brandLogoSizeUser : 'md';
+      const nextMotdEnabled = Boolean(res.data?.motdEnabled);
+      const nextMotdMessage = res.data?.motdMessage || '';
       setBrandLogoDataUrl(nextLogo);
       setBrandLogoSizeUser(nextSize);
+      setMotdEnabled(nextMotdEnabled);
+      setMotdMessage(nextMotdMessage);
       if (nextLogo) localStorage.setItem('brandLogoDataUrl', nextLogo);
       localStorage.setItem('brandLogoSizeUser', nextSize);
+      localStorage.setItem('motdEnabled', nextMotdEnabled ? 'true' : 'false');
+      localStorage.setItem('motdMessage', nextMotdMessage);
       localStorage.setItem('darkMode', isDark ? 'true' : 'false');
       applyTheme(isDark);
     }).catch(() => {});
@@ -228,6 +276,8 @@ function App() {
         onLogout={handleLogout}
         brandLogoDataUrl={brandLogoDataUrl}
         brandLogoSize={brandLogoSizeUser}
+        motdEnabled={motdEnabled}
+        motdMessage={motdMessage}
       />
     </BrowserRouter>
   );
@@ -242,7 +292,9 @@ function AppRoutes({
   onLogin,
   onLogout,
   brandLogoDataUrl,
-  brandLogoSize
+  brandLogoSize,
+  motdEnabled,
+  motdMessage
 }: {
   authEnabled: boolean;
   token: string;
@@ -251,6 +303,8 @@ function AppRoutes({
   onLogout: () => void;
   brandLogoDataUrl: string;
   brandLogoSize: 'sm' | 'md' | 'lg';
+  motdEnabled: boolean;
+  motdMessage: string;
 }) {
   const location = useLocation();
   const onAdminRoute = location.pathname.startsWith('/admin');
@@ -262,7 +316,15 @@ function AppRoutes({
   const hasAdminSession = Boolean(adminAuth && adminTs && Date.now() - adminTs <= adminTtlMs);
 
   if (authEnabled && !token && !onAdminRoute && !(onUploadRoute && hasAdminSession)) {
-    return <Login onLogin={onLogin} brandLogoDataUrl={brandLogoDataUrl} brandLogoSize={brandLogoSize} />;
+    return (
+      <Login
+        onLogin={onLogin}
+        brandLogoDataUrl={brandLogoDataUrl}
+        brandLogoSize={brandLogoSize}
+        motdEnabled={motdEnabled}
+        motdMessage={motdMessage}
+      />
+    );
   }
 
   if (token) {
@@ -271,7 +333,18 @@ function AppRoutes({
 
   return (
     <Routes>
-      <Route path="/" element={<LogSearchApp user={user} onLogout={onLogout} authEnabled={authEnabled} />} />
+      <Route
+        path="/"
+        element={
+          <LogSearchApp
+            user={user}
+            onLogout={onLogout}
+            authEnabled={authEnabled}
+            initialMotdEnabled={motdEnabled}
+            initialMotdMessage={motdMessage}
+          />
+        }
+      />
       <Route path="/help" element={<HelpPage />} />
       <Route
         path="/upload"

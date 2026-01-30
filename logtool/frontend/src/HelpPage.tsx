@@ -16,6 +16,7 @@ interface HelpSection {
 function HelpPage() {
   const [sections, setSections] = useState<HelpSection[]>([]);
   const [quickTips, setQuickTips] = useState<string[]>([]);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,6 +28,19 @@ function HelpPage() {
       setQuickTips([]);
     });
   }, []);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('darkMode');
+    setDarkMode(stored === 'true');
+  }, []);
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">

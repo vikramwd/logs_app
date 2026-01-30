@@ -1562,6 +1562,14 @@ function AdminApp() {
             <button onClick={handleLogout} className="px-3 py-1 rounded bg-red-600 text-white">Logout</button>
           </div>
         </div>
+        {config.motdMessage && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-100 px-4 py-3 text-sm">
+            <div className="flex items-start gap-2">
+              <span className="text-base">📣</span>
+              <div className="leading-relaxed">{config.motdMessage}</div>
+            </div>
+          </div>
+        )}
 
         {loading && <p className="text-sm text-gray-500 dark:text-gray-400">Loading admin data...</p>}
 
