@@ -1,3 +1,6 @@
 .DS_Store
 logtool/proxy/data/access.log
 logtool/proxy/data/health-history.json
+logtool/proxy/data/app-config.json
+logtool/proxy/data/metrics.json
+logtool/proxy/data/motd-templates.json

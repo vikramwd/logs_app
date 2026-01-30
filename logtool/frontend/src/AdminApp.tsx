@@ -113,15 +113,6 @@ interface Team {
   createdAt?: string;
 }
 
-interface MotdTemplate {
-  id: string;
-  category: string;
-  title: string;
-  message: string;
-  enabled?: boolean;
-  createdAt?: string;
-}
-
 interface ActivityEntry {
   time: string;
   type: string;
@@ -347,11 +338,6 @@ function AdminApp() {
   const [featureToggles, setFeatureToggles] = useState<Record<string, { exports: boolean; bookmarks: boolean; rules: boolean; queryBuilder: boolean; limitTo7Days: boolean; piiUnmasked: boolean; showFullResults: boolean }>>({});
   const [connectionStatus, setConnectionStatus] = useState('');
   const [selectedConnectionId, setSelectedConnectionId] = useState('');
-  const [motdTemplates, setMotdTemplates] = useState<MotdTemplate[]>([]);
-  const [motdCategoryFilter, setMotdCategoryFilter] = useState('all');
-  const [newMotdTitle, setNewMotdTitle] = useState('');
-  const [newMotdMessage, setNewMotdMessage] = useState('');
-  const [newMotdCategory, setNewMotdCategory] = useState('ops');
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importIndex, setImportIndex] = useState('');
   const [importParser, setImportParser] = useState<'ndjson' | 'regex'>('ndjson');
@@ -439,17 +425,6 @@ function AdminApp() {
     Object.keys(featureToggles).forEach((t) => teamSet.add(t));
     return Array.from(teamSet);
   }, [featureToggles, usersList, teams]);
-
-  const motdCategories = useMemo(() => {
-    const set = new Set<string>();
-    motdTemplates.forEach((entry) => set.add(entry.category || 'general'));
-    return Array.from(set).sort();
-  }, [motdTemplates]);
-
-  const filteredMotdTemplates = useMemo(() => {
-    if (motdCategoryFilter === 'all') return motdTemplates;
-    return motdTemplates.filter((entry) => entry.category === motdCategoryFilter);
-  }, [motdCategoryFilter, motdTemplates]);
 
   useEffect(() => {
     setUserTeamsDraft((prev) => {
@@ -591,7 +566,7 @@ function AdminApp() {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [cfg, met, stor, rulesRes, diags, bookmarks, toggles, teamRes, anomalyRes, activityRes, healthRes, weeklyRes, usersUsageRes, hourlyRes, motdRes] = await Promise.all([
+      const [cfg, met, stor, rulesRes, diags, bookmarks, toggles, teamRes, anomalyRes, activityRes, healthRes, weeklyRes, usersUsageRes, hourlyRes] = await Promise.all([
         adminRequest<AdminConfig>('get', '/api/admin/config'),
         adminRequest<MetricsSnapshot>('get', '/api/admin/metrics'),
         adminRequest<StorageUsage>('get', '/api/admin/storage'),
@@ -605,8 +580,7 @@ function AdminApp() {
         adminRequest<HealthTrendResponse>('get', '/api/admin/health-trend'),
         adminRequest<WeeklyUsageResponse>('get', '/api/admin/metrics-weekly'),
         adminRequest<DailyTopUsersResponse>('get', '/api/admin/metrics-users-daily'),
-        adminRequest<HourlyUsageResponse>('get', '/api/admin/metrics-hourly'),
-        adminRequest<MotdTemplate[]>('get', '/api/admin/motd-templates')
+        adminRequest<HourlyUsageResponse>('get', '/api/admin/metrics-hourly')
       ]);
       const usersRes = await adminRequest<{ id: string; username: string; role: string; teams: string[]; createdAt?: string; lastLoginAt?: string }[]>('get', '/api/admin/users');
       setConfig(cfg.data);
@@ -640,7 +614,6 @@ function AdminApp() {
       setTeamBookmarks(bookmarks.data);
       setFeatureToggles(toggles.data.teams || {});
       setTeams(teamRes.data || []);
-      setMotdTemplates(motdRes.data || []);
       setAnomalies(anomalyRes.data || null);
       setActivity(activityRes.data || []);
       setHealthTrend(healthRes.data || null);
@@ -1275,44 +1248,6 @@ function AdminApp() {
   const deleteTeamBookmark = async (id: string) => {
     await adminRequest<{ removed: number }>('delete', `/api/admin/team-bookmarks/${id}`);
     setTeamBookmarks((prev) => prev.filter((b) => b.id !== id));
-  };
-
-  const saveMotdTemplates = async (templates: MotdTemplate[]) => {
-    const res = await adminRequest<MotdTemplate[]>('put', '/api/admin/motd-templates', templates);
-    setMotdTemplates(res.data || []);
-    showNotice('MOTD templates saved.', 'success');
-  };
-
-  const addMotdTemplate = async () => {
-    if (!newMotdTitle.trim() || !newMotdMessage.trim()) {
-      showNotice('Title and message are required.', 'error');
-      return;
-    }
-    const next: MotdTemplate = {
-      id: createClientId(),
-      category: newMotdCategory.trim() || 'general',
-      title: newMotdTitle.trim(),
-      message: newMotdMessage.trim(),
-      enabled: true,
-      createdAt: new Date().toISOString()
-    };
-    await saveMotdTemplates([next, ...motdTemplates]);
-    setNewMotdTitle('');
-    setNewMotdMessage('');
-    setNewMotdCategory('ops');
-  };
-
-  const updateMotdTemplate = (id: string, patch: Partial<MotdTemplate>) => {
-    setMotdTemplates((prev) => prev.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)));
-  };
-
-  const removeMotdTemplate = async (id: string) => {
-    await saveMotdTemplates(motdTemplates.filter((entry) => entry.id !== id));
-  };
-
-  const applyMotdTemplate = (template: MotdTemplate) => {
-    setConfig({ ...config, motdEnabled: true, motdMessage: template.message });
-    showNotice('Template applied. Save MOTD to publish.', 'info');
   };
 
   const addAdminTeam = async () => {
@@ -2923,104 +2858,6 @@ function AdminApp() {
                 </div>
                 <div>
                   <button onClick={saveConfig} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save MOTD</button>
-                </div>
-              </div>
-
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Templates</div>
-                  <select
-                    value={motdCategoryFilter}
-                    onChange={(e) => setMotdCategoryFilter(e.target.value)}
-                    className="px-2 py-1 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded text-xs"
-                  >
-                    <option value="all">All topics</option>
-                    {motdCategories.map((category) => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => saveMotdTemplates(motdTemplates)}
-                    className="px-3 py-1 bg-gray-200 dark:bg-gray-700 dark:text-gray-100 rounded text-xs"
-                  >
-                    Save templates
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                  <input
-                    value={newMotdTitle}
-                    onChange={(e) => setNewMotdTitle(e.target.value)}
-                    placeholder="Title"
-                    className="px-2 py-1 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded"
-                  />
-                  <input
-                    value={newMotdCategory}
-                    onChange={(e) => setNewMotdCategory(e.target.value)}
-                    placeholder="Category (ops, security...)"
-                    className="px-2 py-1 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded"
-                  />
-                  <button
-                    onClick={addMotdTemplate}
-                    className="px-3 py-1 bg-blue-600 text-white rounded"
-                  >
-                    Add template
-                  </button>
-                </div>
-                <textarea
-                  value={newMotdMessage}
-                  onChange={(e) => setNewMotdMessage(e.target.value)}
-                  rows={2}
-                  placeholder="Template message"
-                  className="w-full px-2 py-1 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded text-xs"
-                />
-
-                <div className="border dark:border-gray-700 rounded p-3 bg-white dark:bg-gray-900 max-h-80 overflow-auto space-y-2">
-                  {filteredMotdTemplates.length === 0 && (
-                    <div className="text-xs text-gray-500 dark:text-gray-400">No templates for this topic.</div>
-                  )}
-                  {filteredMotdTemplates.map((entry) => (
-                    <div key={entry.id} className="border dark:border-gray-700 rounded p-3 space-y-2 bg-white dark:bg-gray-800">
-                      <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <input
-                          value={entry.title}
-                          onChange={(e) => updateMotdTemplate(entry.id, { title: e.target.value })}
-                          className="flex-1 px-2 py-1 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded"
-                        />
-                        <input
-                          value={entry.category}
-                          onChange={(e) => updateMotdTemplate(entry.id, { category: e.target.value })}
-                          className="w-32 px-2 py-1 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded"
-                        />
-                        <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300">
-                          <input
-                            type="checkbox"
-                            checked={entry.enabled !== false}
-                            onChange={(e) => updateMotdTemplate(entry.id, { enabled: e.target.checked })}
-                          />
-                          Enabled
-                        </label>
-                        <button
-                          onClick={() => applyMotdTemplate(entry)}
-                          className="px-2 py-1 bg-gray-200 dark:bg-gray-700 dark:text-gray-100 rounded"
-                        >
-                          Use
-                        </button>
-                        <button
-                          onClick={() => removeMotdTemplate(entry.id)}
-                          className="px-2 py-1 bg-red-100 text-red-700 rounded"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                      <textarea
-                        value={entry.message}
-                        onChange={(e) => updateMotdTemplate(entry.id, { message: e.target.value })}
-                        rows={2}
-                        className="w-full px-2 py-1 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded text-xs"
-                      />
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
