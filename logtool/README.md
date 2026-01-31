@@ -37,12 +37,17 @@ WDTS Logging Solution is a lightweight log search and administration UI built fo
 - Feature toggles per team (enable/disable capabilities).
 - Team bookmarks management for shared queries.
 - Branding controls (logo and sizing).
+- Message of the Day (MOTD) management with optional templates.
+- Admin FAQs page (read-only) for operator guidance.
+- Admin error log viewer (admin-only, redacted output).
 - Maintenance tools (log rotation/pruning and service restarts).
 
 ## User Experience
 
 - Dark mode default + user toggle.
 - Server-synced clock.
+- Message of the Day banner on login and user UI.
+- Client IP indicator in the header.
 - Recent searches and bookmarks.
 - Status indicators for OpenSearch and user sessions.
 

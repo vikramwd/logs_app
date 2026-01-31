@@ -106,7 +106,7 @@ const DEFAULT_CONFIG = {
   brandLogoSizeAdmin: 'md',
   motdEnabled: false,
   motdMessage: '',
-  helpContentVersion: 3,
+  helpContentVersion: 4,
   helpQuickTips: [
     'Use time presets to speed up searches.',
     'Switch to exact mode for IDs and error codes.',
@@ -208,7 +208,9 @@ const DEFAULT_CONFIG = {
       title: 'Appearance & Status',
       items: [
         { q: 'How do I switch dark mode?', a: 'Click the moon/sun icon in the header.' },
-        { q: 'What is the clock showing?', a: 'It displays server-synced time to align with log timestamps. Example: 14:05 UTC.' }
+        { q: 'What is the clock showing?', a: 'It displays server-synced time to align with log timestamps. Example: 14:05 UTC.' },
+        { q: 'What is the Message of the Day banner?', a: 'Admins can show a banner for maintenance or announcements. It appears on the login page and the user UI when enabled.' },
+        { q: 'Why do I see “YourIP”?', a: 'It shows the IP address the server sees for your session.' }
       ]
     },
     {
