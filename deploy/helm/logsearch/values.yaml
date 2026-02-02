@@ -70,3 +70,13 @@ rbac:
   - create
   - update
   - patch
+
+envConfig:
+  enabled: true
+  name: "logsearch-env"
+  data:
+    IMPORT_UI_VISIBLE: "true"
+    IMPORT_ENABLED: "true"
+    IMPORT_AUTO_CREATE_INDEX: "true"
+    IMPORT_INDEX_RETENTION_ENABLED: "true"
+    IMPORT_INDEX_RETENTION_DAYS: "7"

@@ -1,0 +1,13 @@
+{{- if .Values.envConfig.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.envConfig.name | quote }}
+  namespace: {{ .Values.namespace.name | quote }}
+  labels:
+    app: {{ include "logsearch.name" . }}
+data:
+  {{- range $key, $value := .Values.envConfig.data }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}
