@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="${ROOT_DIR}/logtool/.env"
 DEST="${ROOT_DIR}/deploy/helm/logsearch/files/app.env"
 

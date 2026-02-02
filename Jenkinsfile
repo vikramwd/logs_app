@@ -108,6 +108,7 @@ spec:
           sh '''
             set -e
             TAG="v${BUILD_NUMBER}"
+            sh ./scripts/sync-helm-env.sh
             CTX=""
             if [ -n "${KUBE_CONTEXT}" ]; then
               CTX="--kube-context ${KUBE_CONTEXT}"
