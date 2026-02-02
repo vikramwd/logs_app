@@ -145,3 +145,16 @@ node server.js
 ```
 docker-compose up --build
 ```
+
+## Helm (.env ConfigMap)
+
+The Helm chart reads `deploy/helm/logsearch/files/app.env` and loads it via a ConfigMap (non-secrets) plus a Secret (sensitive keys).
+Update `files/app.env` when `.env` changes, then redeploy:
+
+```
+./scripts/sync-helm-env.sh
+```
+
+```
+helm upgrade --install logsearch deploy/helm/logsearch -n opensearch
+```

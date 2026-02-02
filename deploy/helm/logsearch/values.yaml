@@ -74,9 +74,17 @@ rbac:
 envConfig:
   enabled: true
   name: "logsearch-env"
-  data:
-    IMPORT_UI_VISIBLE: "true"
-    IMPORT_ENABLED: "true"
-    IMPORT_AUTO_CREATE_INDEX: "true"
-    IMPORT_INDEX_RETENTION_ENABLED: "true"
-    IMPORT_INDEX_RETENTION_DAYS: "7"
+  envFile: "files/app.env"
+
+envSecrets:
+  enabled: true
+  name: "logsearch-env-secrets"
+  keys:
+    - OPENSEARCH_USERNAME
+    - OPENSEARCH_PASSWORD
+    - ADMIN_USER
+    - ADMIN_PASS
+    - SMTP_USER
+    - SMTP_PASS
+    - ALERT_EMAIL_TO
+    - ALERT_EMAIL_FROM
