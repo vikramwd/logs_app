@@ -1,3 +1,11 @@
 {
-  "bookmarks": []
+  "bookmarks": [
+    {
+      "id": "f3e06723-018f-460c-8aef-463a232483df",
+      "name": "ServiceFinder",
+      "query": "service:casino_app",
+      "team": "alpha",
+      "createdAt": "2026-02-03T11:24:35.153Z"
+    }
+  ]
 }

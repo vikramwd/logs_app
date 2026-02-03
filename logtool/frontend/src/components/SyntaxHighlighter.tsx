@@ -39,7 +39,7 @@ export default function JsonHighlighter({ children, maxHeight, highlightTerms = 
     <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 overflow-hidden">
       <div style={{ maxHeight: maxHeight ? `${maxHeight}px` : undefined, overflow: 'auto' }}>
         {highlightTerms.length > 0 ? (
-          <pre className="whitespace-pre-wrap text-[12px] font-mono text-gray-800 dark:text-gray-100 px-3 py-2">
+          <pre className="whitespace-pre-wrap break-words text-[12px] font-mono text-gray-800 dark:text-gray-100 px-3 py-2">
             {highlightText(parsed, highlightTerms)}
           </pre>
         ) : (
@@ -51,7 +51,10 @@ export default function JsonHighlighter({ children, maxHeight, highlightTerms = 
               margin: 0,
               padding: '0.75rem',
               background: 'transparent',
-              fontSize: '12px'
+              fontSize: '12px',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              overflowX: 'hidden'
             }}
           >
             {parsed}

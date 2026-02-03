@@ -15,6 +15,8 @@ WDTS Logging Solution is a lightweight log search and administration UI built fo
 - Query Builder for structured filters (AND/OR + operators).
 - Field Explorer with quick filters and pinned values.
 - Highlight Rules to visually flag important log patterns.
+- Results view with expand/collapse full JSON per row.
+- Per-result JSON download from the results list.
 - Export logs to JSON or CSV with size checks.
 - Upload logs with preview (NDJSON or regex), inferred mapping, and size estimates.
 
@@ -23,7 +25,7 @@ WDTS Logging Solution is a lightweight log search and administration UI built fo
 - Optional user login with roles (viewer/editor/admin).
 - Team feature toggles (exports, bookmarks, alert rules, query builder, PII access, and more).
 - Team and user index access controls.
-- Remember-me login toggle (session vs persistent).
+- Remember password toggle (stores credentials in the browser; use only on trusted devices).
 
 ## Admin Console
 
@@ -52,6 +54,7 @@ WDTS Logging Solution is a lightweight log search and administration UI built fo
 - Message of the Day (MOTD) banner on login + user/admin UI when enabled.
 - “YourIP” header display for user/admin.
 - Query-aware tips when a search returns 0 hits or fails.
+- Search term highlighting in both result snippets and expanded JSON.
 
 ## Monitoring & Insights
 

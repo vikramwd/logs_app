@@ -110,9 +110,9 @@ const DEFAULT_CONFIG = {
   helpContentVersion: 4,
   helpQuickTips: [
     'Use time presets to speed up searches.',
-    'Switch to exact mode for IDs and error codes.',
-    'Pin filters to keep them across searches.',
-    'Use quotes for exact phrases.'
+    'Use quotes for exact phrases.',
+    'Download a single result from the result row.',
+    'Expand a result to view full JSON.'
   ],
   helpSections: [
     {
@@ -121,7 +121,8 @@ const DEFAULT_CONFIG = {
       items: [
         { q: 'How do I run my first search?', a: '1) Choose a time preset. 2) Enter a keyword. 3) Click Search. Results appear below.' },
         { q: 'What does the OS status dot mean?', a: 'Green means OpenSearch reachable. Red means the cluster is down or unreachable.' },
-        { q: 'How do I clear the app state?', a: 'Click the Clear button to wipe recent searches and bookmarks for this browser.' }
+        { q: 'How do I clear the app state?', a: 'Click the Clear button to wipe recent searches and bookmarks for this browser.' },
+        { q: 'What does Remember password do?', a: 'It stores your username and password in this browser for convenience. Disable it on shared machines.' }
       ]
     },
     {
@@ -174,6 +175,8 @@ const DEFAULT_CONFIG = {
       title: 'Results View',
       items: [
         { q: 'How do I switch between message and full JSON?', a: 'Use the “Show full JSON / Show message only” toggle above results.' },
+        { q: 'How do I download a single result?', a: 'Use the Download JSON action on the result row to save just that log entry.' },
+        { q: 'How do highlights work?', a: 'Search terms are highlighted in both the log snippet and the full JSON.' },
         { q: 'How do I browse pages?', a: 'Use pagination controls at the bottom of the results list. Example: go to page 2 to view older hits.' },
         { q: 'Why do I see “No message provided”?', a: 'Some logs don’t have a message field; try full JSON view.' }
       ]
@@ -229,7 +232,8 @@ const DEFAULT_CONFIG = {
       title: 'Login & Sessions',
       items: [
         { q: 'Why did I get logged out?', a: 'Admin sessions expire after the configured TTL. Log in again from /admin.' },
-        { q: 'Can I open multiple admin tabs?', a: 'Yes, but inactivity may expire the session. Use Refresh in the admin header if needed.' }
+        { q: 'Can I open multiple admin tabs?', a: 'Yes, but inactivity may expire the session. Use Refresh in the admin header if needed.' },
+        { q: 'What does Remember password do?', a: 'It stores username and password in the browser local storage for convenience. Do not use it on shared machines.' }
       ]
     },
     {

@@ -11,6 +11,10 @@
         {
           "q": "Can I open multiple admin tabs?",
           "a": "Yes, but inactivity may expire the session. Use Refresh in the admin header if needed."
+        },
+        {
+          "q": "What does Remember password do?",
+          "a": "It stores username and password in the browser local storage for convenience. Do not use it on shared machines."
         }
       ]
     },

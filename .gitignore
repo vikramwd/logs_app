@@ -6,3 +6,4 @@ logtool/proxy/data/metrics.json
 logtool/proxy/data/error.log
 logtool/proxy/data/users.json
 logtool/proxy/data/field-glossary.json
+fluent/

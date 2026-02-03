@@ -9,6 +9,7 @@ interface SearchResult {
   _id: string;
   _source: Record<string, any>;
   _index: string;
+  _score?: number;
 }
 
 const TIME_PRESETS = [
@@ -920,6 +921,18 @@ function LogSearchApp({
     });
   };
 
+  const downloadSingleResult = (payload: string, id: string) => {
+    const blob = new Blob([payload], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `log-${id}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const formatBytes = (bytes: number) => {
     if (!bytes || bytes < 1) return '0 B';
     const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -1334,6 +1347,15 @@ function LogSearchApp({
 
         <form onSubmit={handleFormSubmit} className="mb-2 flex gap-2">
           <input type="text" value={query} onChange={(e) => handleQueryChange(e.target.value)} placeholder='Search logs...' className="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" autoFocus />
+          <button
+            type="button"
+            onClick={() => handleQueryChange('')}
+            disabled={!query.trim()}
+            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+            title="Clear search"
+          >
+            Clear
+          </button>
           <button type="submit" disabled={loading} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">Search</button>
           <button type="button" onClick={addBookmark} disabled={!query.trim()} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50" title="Save this search">🔖</button>
         </form>
@@ -1360,7 +1382,7 @@ function LogSearchApp({
           </button>
         </div>
 
-        {(bookmarks.length > 0 || recentSearches.length > 0) && (
+        {(bookmarks.length > 0 || recentSearches.length > 0 || (featureAccess.bookmarks && teamBookmarks.length > 0)) && (
           <div className="mb-6 space-y-3">
             {bookmarks.length > 0 && (
               <div>
@@ -1427,77 +1449,78 @@ function LogSearchApp({
             </div>
           </div>
         )}
-        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-          <span className="uppercase tracking-wide text-[10px] text-gray-500 dark:text-gray-400">Highlight scope</span>
-          <button
-            onClick={() => setHighlightScope('message')}
-            className={`px-2 py-1 rounded ${highlightScope === 'message' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
-          >
-            Message
-          </button>
-          <button
-            onClick={() => setHighlightScope('json')}
-            className={`px-2 py-1 rounded ${highlightScope === 'json' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
-          >
-            Full JSON
-          </button>
-        </div>
         <div className="space-y-4">
           {results.map((hit) => {
             const timestamp = hit._source.timestamp || hit._source['@timestamp'] || 'No timestamp';
             const message = hit._source.message;
             const fullLog = JSON.stringify(hit._source, null, 2);
             const highlightTerms = getHighlightTerms(query);
-            const messageHighlightTerms = highlightScope === 'message' ? highlightTerms : [];
-            const jsonHighlightTerms = highlightScope === 'json' ? highlightTerms : [];
+            const messageHighlightTerms = highlightTerms;
+            const jsonHighlightTerms = highlightTerms;
             const matchedHighlightRules = getMatchedHighlightRules(hit);
             const highlightColor = getPrimaryHighlightColor(matchedHighlightRules);
             const formattedMessageJson = formatJsonValue(message);
             const canShowFullResults = featureAccess.showFullResults;
             const isExpanded = canShowFullResults && (showFullResults || expandedResults[hit._id]);
-            const messageContent = buildMessageContent(message, formattedMessageJson, fullLog);
-            const messageTitle = buildTitle(messageContent, 90);
-            const messageSnippet = buildSnippet(messageContent, 220);
+            const logField = hit._source.log ?? hit._source.message ?? hit._source.msg ?? hit._source.event?.original ?? '';
+            const logText = typeof logField === 'string' ? logField : JSON.stringify(logField);
+            const messageContent = buildMessageContent(logText, formattedMessageJson, fullLog);
+            const messageSnippet = buildSnippet(messageContent, 320);
             return (
               <div
                 key={hit._id}
-                className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700"
+                className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700 max-w-full overflow-hidden"
                 style={highlightColor ? { borderLeft: `4px solid ${highlightColor}` } : undefined}
               >
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">[{hit._index}] {timestamp}</div>
-                {matchedHighlightRules.length > 0 && (
-                  <div className="mb-2 flex flex-wrap gap-2 text-[11px] text-gray-700 dark:text-gray-300">
-                    {matchedHighlightRules.map((match, idx) => (
-                      <span
-                        key={`${match.rule.field}-${match.rule.pattern}-${match.rule.color}-${idx}`}
-                        className="inline-flex items-center gap-1 rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5 bg-gray-50 dark:bg-gray-900"
+                <div className="flex gap-3 min-w-0">
+                  <div className="flex flex-col items-center gap-2 text-xs text-gray-500 dark:text-gray-400 min-w-[110px]">
+                    {canShowFullResults && (
+                      <button
+                        onClick={() => toggleResultExpanded(hit._id)}
+                        className="h-7 w-7 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        title={isExpanded ? 'Collapse' : 'Expand'}
                       >
-                        <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: match.rule.color }} />
-                        <span>{match.rule.field} {match.rule.match === 'equals' ? '=' : '~'} {match.matchedValue}</span>
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-snug">{messageTitle || 'Log entry'}</div>
-                <div className="mt-1 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                  {renderHighlightedText(messageSnippet || 'No message provided.', messageHighlightTerms)}
-                </div>
-                <div className="mt-3 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                  <span>Result {hit._id}</span>
-                  {canShowFullResults && (
-                    <button onClick={() => copyToClipboard(fullLog)} className="hover:text-gray-800 dark:hover:text-gray-200" title="Copy full log">Copy JSON</button>
-                  )}
-                </div>
-                {canShowFullResults && (
-                  <details className="mt-3">
-                    <summary className="cursor-pointer text-sm text-blue-600 dark:text-blue-400 hover:underline">
-                      {isExpanded ? 'Hide full JSON' : 'Show full JSON'}
-                    </summary>
-                    <div className="mt-2">
-                      <JsonHighlighter maxHeight={isExpanded ? 420 : 200} highlightTerms={jsonHighlightTerms}>{fullLog}</JsonHighlighter>
+                        {isExpanded ? '▾' : '▸'}
+                      </button>
+                    )}
+                    <div className="text-right leading-tight">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Timestamp</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-300 break-all">{timestamp}</div>
                     </div>
-                  </details>
-                )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {matchedHighlightRules.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-2 text-[11px] text-gray-700 dark:text-gray-300">
+                        {matchedHighlightRules.map((match, idx) => (
+                          <span
+                            key={`${match.rule.field}-${match.rule.pattern}-${match.rule.color}-${idx}`}
+                            className="inline-flex items-center gap-1 rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5 bg-gray-50 dark:bg-gray-900"
+                          >
+                            <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: match.rule.color }} />
+                            <span>{match.rule.field} {match.rule.match === 'equals' ? '=' : '~'} {match.matchedValue}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-2 text-sm text-gray-800 dark:text-gray-100 font-mono leading-relaxed break-words whitespace-pre-wrap overflow-hidden w-full min-w-0">
+                      {renderHighlightedText(messageSnippet || 'No message provided.', messageHighlightTerms)}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <span>Result</span>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => downloadSingleResult(fullLog, hit._id)} className="hover:text-gray-800 dark:hover:text-gray-200" title="Download JSON">Download JSON</button>
+                        {canShowFullResults && (
+                          <button onClick={() => copyToClipboard(fullLog)} className="hover:text-gray-800 dark:hover:text-gray-200" title="Copy full log">Copy JSON</button>
+                        )}
+                      </div>
+                    </div>
+                    {canShowFullResults && isExpanded && (
+                      <div className="mt-3 max-w-full overflow-hidden">
+                        <JsonHighlighter maxHeight={420} highlightTerms={jsonHighlightTerms}>{fullLog}</JsonHighlighter>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             );
           })}

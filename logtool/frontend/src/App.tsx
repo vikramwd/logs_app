@@ -30,16 +30,25 @@ function Login({
   motdEnabled,
   motdMessage
 }: {
-  onLogin: (token: string, user: AuthUser, rememberMe: boolean) => void;
+  onLogin: (token: string, user: AuthUser, rememberPassword: boolean) => void;
   brandLogoDataUrl: string;
   brandLogoSize: 'sm' | 'md' | 'lg';
   motdEnabled: boolean;
   motdMessage: string;
 }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const rememberPasswordDefault = (() => {
+    const stored = localStorage.getItem('rememberPasswordEnabled');
+    if (stored !== null) return stored === 'true';
+    return localStorage.getItem('rememberMeUser') !== 'false';
+  })();
+  const [username, setUsername] = useState(() => (
+    rememberPasswordDefault ? (localStorage.getItem('rememberPasswordUsername') || '') : ''
+  ));
+  const [password, setPassword] = useState(() => (
+    rememberPasswordDefault ? (localStorage.getItem('rememberPasswordValue') || '') : ''
+  ));
   const [error, setError] = useState('');
-  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('rememberMeUser') !== 'false');
+  const [rememberPassword, setRememberPassword] = useState(rememberPasswordDefault);
   const [motdState, setMotdState] = useState(() => ({
     enabled: motdEnabled || localStorage.getItem('motdEnabled') === 'true',
     message: motdMessage || localStorage.getItem('motdMessage') || ''
@@ -82,8 +91,15 @@ function Login({
     setError('');
     try {
       const response = await axios.post('/api/auth/login', { username, password });
-      localStorage.setItem('rememberMeUser', rememberMe ? 'true' : 'false');
-      onLogin(response.data.token, response.data.user, rememberMe);
+      localStorage.setItem('rememberPasswordEnabled', rememberPassword ? 'true' : 'false');
+      if (rememberPassword) {
+        localStorage.setItem('rememberPasswordUsername', username);
+        localStorage.setItem('rememberPasswordValue', password);
+      } else {
+        localStorage.removeItem('rememberPasswordUsername');
+        localStorage.removeItem('rememberPasswordValue');
+      }
+      onLogin(response.data.token, response.data.user, rememberPassword);
       setPassword('');
     } catch {
       setError('Invalid username or password.');
@@ -136,15 +152,19 @@ function Login({
           <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
             <input
               type="checkbox"
-              checked={rememberMe}
+              checked={rememberPassword}
               onChange={(e) => {
                 const next = e.target.checked;
-                setRememberMe(next);
-                localStorage.setItem('rememberMeUser', next ? 'true' : 'false');
+                setRememberPassword(next);
+                localStorage.setItem('rememberPasswordEnabled', next ? 'true' : 'false');
+                if (!next) {
+                  localStorage.removeItem('rememberPasswordUsername');
+                  localStorage.removeItem('rememberPasswordValue');
+                }
               }}
               className="h-4 w-4"
             />
-            Remember me
+            Remember password
           </label>
           {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
           <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Sign in</button>
@@ -235,11 +255,11 @@ function App() {
     }
   }, [token]);
 
-  const handleLogin = (newToken: string, authUser: AuthUser, rememberMe: boolean) => {
+  const handleLogin = (newToken: string, authUser: AuthUser, rememberPassword: boolean) => {
     axios.defaults.headers.common.Authorization = `Bearer ${newToken}`;
     setToken(newToken);
     setUser(authUser);
-    if (rememberMe) {
+    if (rememberPassword) {
       localStorage.setItem('authToken', newToken);
       localStorage.setItem('authUser', JSON.stringify(authUser));
       sessionStorage.removeItem('authToken');
@@ -329,7 +349,7 @@ function AppRoutes({
   authEnabled: boolean;
   token: string;
   user: AuthUser | null;
-  onLogin: (tokenValue: string, authUser: AuthUser, rememberMe: boolean) => void;
+  onLogin: (tokenValue: string, authUser: AuthUser, rememberPassword: boolean) => void;
   onLogout: () => void;
   brandLogoDataUrl: string;
   brandLogoSize: 'sm' | 'md' | 'lg';
