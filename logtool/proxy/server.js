@@ -32,6 +32,7 @@ const IMPORT_JOBS_PATH = path.join(DATA_DIR, 'import-jobs.json');
 const IMPORT_INDICES_PATH = path.join(DATA_DIR, 'import-indices.json');
 const MOTD_TEMPLATES_PATH = path.join(DATA_DIR, 'motd-templates.json');
 const ADMIN_FAQS_PATH = path.join(DATA_DIR, 'admin-faqs.json');
+const FIELD_GLOSSARY_PATH = path.join(DATA_DIR, 'field-glossary.json');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const ACCESS_LOG_PATH = path.join(DATA_DIR, 'access.log');
 const ERROR_LOG_PATH = path.join(DATA_DIR, 'error.log');
@@ -411,6 +412,8 @@ let motdTemplates = normalizeMotdTemplates(loadJson(MOTD_TEMPLATES_PATH, { templ
 saveJson(MOTD_TEMPLATES_PATH, motdTemplates);
 let adminFaqs = normalizeAdminFaqs(loadJson(ADMIN_FAQS_PATH, { sections: DEFAULT_CONFIG.adminFaqSections }));
 saveJson(ADMIN_FAQS_PATH, adminFaqs);
+let fieldGlossary = loadJson(FIELD_GLOSSARY_PATH, { fields: {} });
+saveJson(FIELD_GLOSSARY_PATH, fieldGlossary);
 
 const tokenStore = new Map();
 const responseCache = new Map();
@@ -668,6 +671,21 @@ function parseTimestampValue(value, format) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed.toISOString();
+}
+
+function inferFieldType(value) {
+  if (value === null || value === undefined) return 'null';
+  if (Array.isArray(value)) return 'array';
+  if (typeof value === 'boolean') return 'boolean';
+  if (typeof value === 'number') return Number.isInteger(value) ? 'long' : 'double';
+  if (typeof value === 'object') return 'object';
+  if (typeof value === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}T/.test(value) && !Number.isNaN(Date.parse(value))) {
+      return 'date';
+    }
+    return 'text';
+  }
+  return 'unknown';
 }
 
 function parseImportLine(line, parserType, options, regex) {
@@ -1345,15 +1363,36 @@ async function buildImportPreview(filePath, options) {
       throw new Error(`Invalid regex: ${error.message}`);
     }
   }
+  let detectionLines = 0;
+  let detectionJsonOk = 0;
   const samples = [];
   let errors = 0;
   let skipped = 0;
   let total = 0;
+  let totalBytes = 0;
+  const inferred = {};
   const stream = fs.createReadStream(filePath, { encoding: 'utf8' });
   const rl = require('readline').createInterface({ input: stream, crlfDelay: Infinity });
   for await (const line of rl) {
+    totalBytes += Buffer.byteLength(line, 'utf8') + 1;
     total += 1;
     if (total > IMPORT_MAX_LINES) break;
+    if (detectionLines < 50) {
+      const trimmed = line.trim();
+      if (trimmed) {
+        detectionLines += 1;
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            if (parsed && typeof parsed === 'object') {
+              detectionJsonOk += 1;
+            }
+          } catch {
+            // ignore parse failures
+          }
+        }
+      }
+    }
     const parsedResult = parseImportLine(line, parserType, options, regex);
     if (!parsedResult.ok) {
       if (parsedResult.skip) {
@@ -1368,6 +1407,14 @@ async function buildImportPreview(filePath, options) {
         errors += 1;
       } else {
         parsed[timestampField] = isoTimestamp;
+        Object.entries(parsed).forEach(([key, value]) => {
+          const nextType = inferFieldType(value);
+          if (!inferred[key]) {
+            inferred[key] = nextType;
+          } else if (inferred[key] !== nextType) {
+            inferred[key] = 'mixed';
+          }
+        });
         if (samples.length < IMPORT_PREVIEW_LINES) {
           samples.push(parsed);
         }
@@ -1375,7 +1422,32 @@ async function buildImportPreview(filePath, options) {
     }
     if (samples.length >= IMPORT_PREVIEW_LINES) break;
   }
-  return { samples, errors, skipped, totalChecked: total };
+  const stat = await fs.promises.stat(filePath);
+  const fileSizeBytes = stat.size || 0;
+  const avgLineBytes = total > 0 ? totalBytes / total : 0;
+  const estimatedTotalLines = avgLineBytes > 0 ? Math.round(fileSizeBytes / avgLineBytes) : total;
+  const estimatedIndexBytes = Math.round(fileSizeBytes * 1.5);
+  const detectionRatio = detectionLines > 0 ? detectionJsonOk / detectionLines : 0;
+  const detectedParser = detectionLines === 0 ? parserType : (detectionRatio >= 0.6 ? 'ndjson' : 'regex');
+  const detectionConfidence = detectionLines === 0 ? 0 : (detectionRatio >= 0.6 ? detectionRatio : 1 - detectionRatio);
+  const detectionReason = detectionLines === 0
+    ? 'No non-empty lines were available for detection.'
+    : `${detectionJsonOk}/${detectionLines} lines parsed as JSON.`;
+  return {
+    samples,
+    errors,
+    skipped,
+    totalChecked: total,
+    estimatedTotalLines,
+    fileSizeBytes,
+    estimatedIndexBytes,
+    estimateNote: 'Estimated size based on raw file size.',
+    inferredMapping: inferred,
+    index: options.index,
+    detectedParser,
+    detectionConfidence,
+    detectionReason
+  };
 }
 
 function escapeRegex(input) {
@@ -3053,6 +3125,10 @@ app.put('/api/admin/motd-templates', (req, res) => {
 
 app.get('/api/admin/admin-faqs', (req, res) => {
   res.json(adminFaqs.sections || []);
+});
+
+app.get('/api/field-glossary', (req, res) => {
+  res.json(fieldGlossary.fields || {});
 });
 
 app.get('/api/admin/team-bookmarks', (req, res) => {

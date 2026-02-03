@@ -26,20 +26,48 @@ function UploadPage({ authEnabled, userRole }: { authEnabled: boolean; userRole?
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importIndex, setImportIndex] = useState('');
   const [importParser, setImportParser] = useState<'ndjson' | 'regex'>('ndjson');
+  const [parserTouched, setParserTouched] = useState(false);
   const [importTimestampField, setImportTimestampField] = useState('@timestamp');
   const [importRegex, setImportRegex] = useState('');
-  const [importPreview, setImportPreview] = useState<{ samples: Record<string, any>[]; errors: number; skipped?: number; totalChecked: number } | null>(null);
+  const [importPreview, setImportPreview] = useState<{
+    samples: Record<string, any>[];
+    errors: number;
+    skipped?: number;
+    totalChecked: number;
+    estimatedTotalLines?: number;
+    fileSizeBytes?: number;
+    estimatedIndexBytes?: number;
+    estimateNote?: string;
+    inferredMapping?: Record<string, string>;
+    index?: string;
+    detectedParser?: 'ndjson' | 'regex';
+    detectionConfidence?: number;
+    detectionReason?: string;
+  } | null>(null);
   const [importBusy, setImportBusy] = useState(false);
   const [importJobId, setImportJobId] = useState('');
   const [importStatus, setImportStatus] = useState<ImportStatus | null>(null);
   const [importHistory, setImportHistory] = useState<ImportStatus[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showMapping, setShowMapping] = useState(false);
   const handleBack = () => {
     if (window.history.length > 1) {
       navigate(-1);
     } else {
       navigate('/admin');
     }
+  };
+
+  const formatBytes = (bytes?: number) => {
+    if (!bytes || !Number.isFinite(bytes)) return '-';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let value = bytes;
+    let idx = 0;
+    while (value >= 1024 && idx < units.length - 1) {
+      value /= 1024;
+      idx += 1;
+    }
+    return `${value.toFixed(value >= 10 || idx === 0 ? 0 : 1)} ${units[idx]}`;
   };
 
   useEffect(() => {
@@ -134,6 +162,9 @@ function UploadPage({ authEnabled, userRole }: { authEnabled: boolean; userRole?
     try {
       const res = await axios.post(`${importBase}/preview`, buildFormData(), { headers: adminHeaders });
       setImportPreview(res.data);
+      if (res.data?.detectedParser && !parserTouched) {
+        setImportParser(res.data.detectedParser as 'ndjson' | 'regex');
+      }
     } catch (error: any) {
       setErrorMessage(error?.response?.data?.error || 'Preview failed.');
     } finally {
@@ -245,7 +276,11 @@ function UploadPage({ authEnabled, userRole }: { authEnabled: boolean; userRole?
                 <label className="block text-gray-600 dark:text-gray-300 mb-1">Upload file (.ndjson or text)</label>
                 <input
                   type="file"
-                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    setImportFile(e.target.files?.[0] || null);
+                    setParserTouched(false);
+                    setImportPreview(null);
+                  }}
                   className="block w-full text-sm text-gray-600 dark:text-gray-300"
                 />
               </div>
@@ -263,12 +298,38 @@ function UploadPage({ authEnabled, userRole }: { authEnabled: boolean; userRole?
                   <label className="block text-gray-600 dark:text-gray-300 mb-1">Parser</label>
                   <select
                     value={importParser}
-                    onChange={(e) => setImportParser(e.target.value as 'ndjson' | 'regex')}
+                    onChange={(e) => {
+                      setImportParser(e.target.value as 'ndjson' | 'regex');
+                      setParserTouched(true);
+                    }}
                     className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded"
                   >
                     <option value="ndjson">NDJSON</option>
                     <option value="regex">Regex</option>
                   </select>
+                  {importPreview?.detectedParser && (
+                    <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
+                      Detected: <span className="text-gray-700 dark:text-gray-200">{importPreview.detectedParser.toUpperCase()}</span>
+                      {typeof importPreview.detectionConfidence === 'number' && (
+                        <> · {Math.round(importPreview.detectionConfidence * 100)}% confidence</>
+                      )}
+                      {importPreview.detectionReason && (
+                        <> · {importPreview.detectionReason}</>
+                      )}
+                      {importPreview.detectedParser !== importParser && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImportParser(importPreview.detectedParser as 'ndjson' | 'regex');
+                            setParserTouched(true);
+                          }}
+                          className="ml-2 underline text-blue-600 dark:text-blue-400"
+                        >
+                          Use detected
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-gray-600 dark:text-gray-300 mb-1">Timestamp field</label>
@@ -304,12 +365,77 @@ function UploadPage({ authEnabled, userRole }: { authEnabled: boolean; userRole?
 
             {importPreview && (
               <div className="border dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 p-4 text-sm">
-                <div className="text-gray-600 dark:text-gray-300 mb-2">
+                <div className="text-gray-600 dark:text-gray-300 mb-4">
                   Preview ({importPreview.samples.length} rows, {importPreview.errors} errors{importPreview.skipped ? `, ${importPreview.skipped} skipped` : ''})
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-xs text-gray-600 dark:text-gray-300">
+                  <div className="space-y-1">
+                    <div className="font-semibold text-gray-700 dark:text-gray-200">Pre-import summary</div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span>Target index</span>
+                      <span className="text-gray-800 dark:text-gray-100">{importPreview.index || importIndex}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span>File size</span>
+                      <span className="text-gray-800 dark:text-gray-100">{formatBytes(importPreview.fileSizeBytes)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span>Estimated records</span>
+                      <span className="text-gray-800 dark:text-gray-100">{importPreview.estimatedTotalLines || importPreview.totalChecked} (estimated)</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span>Estimated index size</span>
+                      <span className="text-gray-800 dark:text-gray-100">{formatBytes(importPreview.estimatedIndexBytes)} (estimated)</span>
+                    </div>
+                    <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-2">
+                      {importPreview.estimateNote || 'Estimates are approximate.'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-700 dark:text-gray-200 mb-2">Inferred mapping</div>
+                    {importPreview.inferredMapping && Object.keys(importPreview.inferredMapping).length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowMapping(true)}
+                        className="px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs"
+                      >
+                        View mapping
+                      </button>
+                    ) : (
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">No fields inferred.</div>
+                    )}
+                  </div>
                 </div>
                 <pre className="text-xs bg-gray-100 dark:bg-gray-900 rounded p-3 overflow-auto max-h-64">
                   {JSON.stringify(importPreview.samples.slice(0, 5), null, 2)}
                 </pre>
+              </div>
+            )}
+
+            {showMapping && importPreview?.inferredMapping && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                <div className="w-full max-w-3xl rounded-lg bg-white dark:bg-gray-900 border dark:border-gray-700">
+                  <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
+                    <div className="font-semibold text-gray-800 dark:text-gray-100">Inferred mapping</div>
+                    <button
+                      type="button"
+                      onClick={() => setShowMapping(false)}
+                      className="px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <div className="p-4 max-h-[70vh] overflow-auto">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs text-gray-700 dark:text-gray-200">
+                      {Object.entries(importPreview.inferredMapping).map(([field, type]) => (
+                        <div key={field} className="flex items-center justify-between gap-2">
+                          <span>{field}</span>
+                          <span className="text-gray-500 dark:text-gray-400">{type}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 

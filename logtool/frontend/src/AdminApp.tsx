@@ -266,34 +266,46 @@ const buildOpensearchUrl = (conn: {
 function AdminApp() {
   const adminTtlMinutes = Number(import.meta.env.VITE_ADMIN_SESSION_TTL_MINUTES || 5);
   const ADMIN_SESSION_TTL_MS = (Number.isFinite(adminTtlMinutes) && adminTtlMinutes > 0 ? adminTtlMinutes : 5) * 60 * 1000;
+  const isStorageSessionValid = (storage: Storage) => {
+    const header = storage.getItem('adminAuth');
+    const ts = Number(storage.getItem('adminAuthAt') || 0);
+    return Boolean(header && ts && Date.now() - ts <= ADMIN_SESSION_TTL_MS);
+  };
+  const clearStorageSession = (storage: Storage) => {
+    storage.removeItem('adminAuth');
+    storage.removeItem('adminUser');
+    storage.removeItem('adminAuthAt');
+  };
   const getStoredAdminAuth = () => {
-    const header = sessionStorage.getItem('adminAuth') || '';
-    const ts = Number(sessionStorage.getItem('adminAuthAt') || 0);
-    if (!header || !ts || Date.now() - ts > ADMIN_SESSION_TTL_MS) {
-      sessionStorage.removeItem('adminAuth');
-      sessionStorage.removeItem('adminUser');
-      sessionStorage.removeItem('adminAuthAt');
-      return '';
+    if (isStorageSessionValid(sessionStorage)) {
+      return sessionStorage.getItem('adminAuth') || '';
     }
-    return header;
+    clearStorageSession(sessionStorage);
+    if (isStorageSessionValid(localStorage)) {
+      return localStorage.getItem('adminAuth') || '';
+    }
+    clearStorageSession(localStorage);
+    return '';
   };
   const isAdminSessionValid = () => {
-    const ts = Number(sessionStorage.getItem('adminAuthAt') || 0);
-    return Boolean(ts && Date.now() - ts <= ADMIN_SESSION_TTL_MS);
+    return isStorageSessionValid(sessionStorage) || isStorageSessionValid(localStorage);
   };
   const touchAdminSession = () => {
+    const storage = sessionStorage.getItem('adminAuth')
+      ? sessionStorage
+      : (localStorage.getItem('adminAuth') ? localStorage : sessionStorage);
     const ts = String(Date.now());
-    sessionStorage.setItem('adminAuthAt', ts);
-    localStorage.setItem('adminAuthAt', ts);
+    storage.setItem('adminAuthAt', ts);
   };
 
   const [authHeader, setAuthHeader] = useState<string>(() => getStoredAdminAuth());
   const [authed, setAuthed] = useState<boolean>(() => Boolean(getStoredAdminAuth()));
-  const [adminUser, setAdminUser] = useState<string>(() => sessionStorage.getItem('adminUser') || '');
+  const [adminUser, setAdminUser] = useState<string>(() => sessionStorage.getItem('adminUser') || localStorage.getItem('adminUser') || '');
   const [clientIp, setClientIp] = useState('');
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [rememberAdmin, setRememberAdmin] = useState(() => localStorage.getItem('rememberMeAdmin') !== 'false');
   const [config, setConfig] = useState<AdminConfig>(emptyConfig);
   const [metrics, setMetrics] = useState<MetricsSnapshot | null>(null);
   const [storage, setStorage] = useState<StorageUsage | null>(null);
@@ -487,11 +499,8 @@ function AdminApp() {
     setAuthed(false);
     setAuthHeader('');
     setAdminUser('');
-    sessionStorage.removeItem('adminAuth');
-    sessionStorage.removeItem('adminUser');
-    sessionStorage.removeItem('adminAuthAt');
-    localStorage.removeItem('adminAuth');
-    localStorage.removeItem('adminAuthAt');
+    clearStorageSession(sessionStorage);
+    clearStorageSession(localStorage);
   };
 
   const adminRequest = async <T,>(method: 'get' | 'post' | 'put' | 'delete', url: string, data?: any) => {
@@ -880,14 +889,20 @@ function AdminApp() {
     try {
       await axios.get('/api/admin/ping', { headers: { Authorization: header } });
       setAuthHeader(header);
-      sessionStorage.setItem('adminAuth', header);
-      localStorage.setItem('adminAuth', header);
-      touchAdminSession();
+      const storage = rememberAdmin ? localStorage : sessionStorage;
+      const otherStorage = rememberAdmin ? sessionStorage : localStorage;
+      storage.setItem('adminAuth', header);
+      storage.setItem('adminAuthAt', String(Date.now()));
+      otherStorage.removeItem('adminAuth');
+      otherStorage.removeItem('adminAuthAt');
+      otherStorage.removeItem('adminUser');
+      localStorage.setItem('rememberMeAdmin', rememberAdmin ? 'true' : 'false');
       const displayUser = loginUser.trim();
       if (displayUser) {
         setAdminUser(displayUser);
-        sessionStorage.setItem('adminUser', displayUser);
+        storage.setItem('adminUser', displayUser);
       }
+      touchAdminSession();
       setAuthed(true);
       setLoginPass('');
     } catch {
@@ -1532,7 +1547,20 @@ function AdminApp() {
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Username</label>
           <input value={loginUser} onChange={(e) => setLoginUser(e.target.value)} className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded mb-3" />
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Password</label>
-          <input type="password" value={loginPass} onChange={(e) => setLoginPass(e.target.value)} className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded mb-4" />
+          <input type="password" value={loginPass} onChange={(e) => setLoginPass(e.target.value)} className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded mb-3" />
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
+            <input
+              type="checkbox"
+              checked={rememberAdmin}
+              onChange={(e) => {
+                const next = e.target.checked;
+                setRememberAdmin(next);
+                localStorage.setItem('rememberMeAdmin', next ? 'true' : 'false');
+              }}
+              className="h-4 w-4"
+            />
+            Remember me
+          </label>
           {loginError && <p className="text-sm text-red-600 mb-3">{loginError}</p>}
           <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Sign in</button>
         </form>

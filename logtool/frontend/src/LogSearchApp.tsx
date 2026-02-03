@@ -124,6 +124,7 @@ function LogSearchApp({
   const [currentPage, setCurrentPage] = useState(1);
   const [showFullResults, setShowFullResults] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchTip, setSearchTip] = useState<string | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [searchMode, setSearchMode] = useState<'relevant' | 'exact'>('relevant');
   const [darkMode, setDarkMode] = useState(false);
@@ -143,6 +144,7 @@ function LogSearchApp({
   const [fieldExplorerTopN, setFieldExplorerTopN] = useState<number>(10);
   const [fieldExplorerData, setFieldExplorerData] = useState<FieldExplorerField[]>([]);
   const [fieldExplorerLoading, setFieldExplorerLoading] = useState(false);
+  const [fieldGlossary, setFieldGlossary] = useState<Record<string, { label?: string; description?: string; examples?: string[] }>>({});
   const [highlightRules, setHighlightRules] = useState<HighlightRule[]>([]);
   const [brandName, setBrandName] = useState('');
   const [brandLogoDataUrl, setBrandLogoDataUrl] = useState('');
@@ -431,6 +433,7 @@ function LogSearchApp({
   const fetchResults = async (q: string, page: number, indexPat: string) => {
     setLoading(true);
     setSearchError(null);
+    setSearchTip(null);
     try {
       const pageSize = 100;
       const rangeFilter = buildTimeRangeFilter(indexPat);
@@ -459,7 +462,16 @@ function LogSearchApp({
 
       const response = await axios.post(`/api/search/${indexPat}/_search`, body);
       setResults(response.data.hits.hits);
-      setTotalHits(response.data.hits.total.value || response.data.hits.total);
+      const totalRaw = response.data?.hits?.total;
+      const hitsTotal = typeof totalRaw === 'number' ? totalRaw : (totalRaw?.value ?? 0);
+      setTotalHits(hitsTotal);
+      if (hitsTotal === 0) {
+        if (!q.trim()) {
+          setSearchTip('Try widening the time range or pick a different index pattern.');
+        } else {
+          setSearchTip('Try widening the time range, checking field names, or switching to Exact mode.');
+        }
+      }
     } catch (err) {
       console.error(err);
       if (axios.isAxiosError(err) && err.response?.status === 401) {
@@ -470,23 +482,34 @@ function LogSearchApp({
         setResults([]);
         setTotalHits(0);
         setSearchError(String(err.response.data.detail));
+        setSearchTip('Check your query syntax or try Exact mode.');
         return;
       }
       if (axios.isAxiosError(err) && err.response?.data?.error) {
         setResults([]);
         setTotalHits(0);
         setSearchError(String(err.response.data.error));
+        setSearchTip('Check your query syntax or try Exact mode.');
         return;
       }
       if (axios.isAxiosError(err) && err.response?.status === 404) {
         setResults([]);
         setTotalHits(0);
         setSearchError('No logs found for that query/time range.');
+        setSearchTip('Try widening the time range or simplifying the query.');
+        return;
+      }
+      if (axios.isAxiosError(err) && err.response?.status && err.response.status >= 400) {
+        setResults([]);
+        setTotalHits(0);
+        setSearchError(`Search error (${err.response.status}).`);
+        setSearchTip('Check your query syntax or try Exact mode.');
         return;
       }
       setResults([]);
       setTotalHits(0);
       setSearchError('Search failed. Check console.');
+      setSearchTip('Try again in a moment or narrow the time range.');
     } finally {
       setLoading(false);
     }
@@ -641,6 +664,12 @@ function LogSearchApp({
   useEffect(() => {
     fetchFieldExplorer();
   }, [indexPattern, startDate, endDate, fieldExplorerFields, fieldExplorerTopN]);
+
+  useEffect(() => {
+    axios.get<Record<string, { label?: string; description?: string; examples?: string[] }>>('/api/field-glossary')
+      .then((res) => setFieldGlossary(res.data || {}))
+      .catch(() => setFieldGlossary({}));
+  }, []);
 
   const formatQueryValue = (value: string) => {
     if (value === null || value === undefined) return '""';
@@ -1207,7 +1236,9 @@ function LogSearchApp({
           <div className="space-y-3">
             {fieldExplorerData.map((field) => (
               <div key={field.field}>
-                <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">{field.field}</div>
+                <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">
+                  <span title={fieldGlossary[field.field]?.description || ''}>{field.field}</span>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {field.values.map((val) => (
                     <div key={`${field.field}-${val.value}`} className="flex items-center gap-1">
@@ -1257,7 +1288,7 @@ function LogSearchApp({
                 <label className="block text-xs text-gray-500 mb-1">Field</label>
                 <select value={builderField} onChange={(e) => setBuilderField(e.target.value)} className="px-2 py-1 border rounded text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white">
                   {builderFields.map((field) => (
-                    <option key={field} value={field}>{field}</option>
+                    <option key={field} value={field} title={fieldGlossary[field]?.description || ''}>{field}</option>
                   ))}
                 </select>
               </div>
@@ -1301,11 +1332,16 @@ function LogSearchApp({
           </div>
         )}
 
-        <form onSubmit={handleFormSubmit} className="mb-6 flex gap-2">
+        <form onSubmit={handleFormSubmit} className="mb-2 flex gap-2">
           <input type="text" value={query} onChange={(e) => handleQueryChange(e.target.value)} placeholder='Search logs...' className="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" autoFocus />
           <button type="submit" disabled={loading} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">Search</button>
           <button type="button" onClick={addBookmark} disabled={!query.trim()} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50" title="Save this search">🔖</button>
         </form>
+        {searchTip && (
+          <div className="mb-6 text-xs text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-900/40 rounded px-3 py-2">
+            Tip: {searchTip}
+          </div>
+        )}
         <div className="mb-6 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
           <span>Search mode:</span>
           <button

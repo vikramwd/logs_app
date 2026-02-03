@@ -30,7 +30,7 @@ function Login({
   motdEnabled,
   motdMessage
 }: {
-  onLogin: (token: string, user: AuthUser) => void;
+  onLogin: (token: string, user: AuthUser, rememberMe: boolean) => void;
   brandLogoDataUrl: string;
   brandLogoSize: 'sm' | 'md' | 'lg';
   motdEnabled: boolean;
@@ -39,6 +39,7 @@ function Login({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('rememberMeUser') !== 'false');
   const [motdState, setMotdState] = useState(() => ({
     enabled: motdEnabled || localStorage.getItem('motdEnabled') === 'true',
     message: motdMessage || localStorage.getItem('motdMessage') || ''
@@ -81,7 +82,8 @@ function Login({
     setError('');
     try {
       const response = await axios.post('/api/auth/login', { username, password });
-      onLogin(response.data.token, response.data.user);
+      localStorage.setItem('rememberMeUser', rememberMe ? 'true' : 'false');
+      onLogin(response.data.token, response.data.user, rememberMe);
       setPassword('');
     } catch {
       setError('Invalid username or password.');
@@ -130,7 +132,20 @@ function Login({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Username</label>
           <input value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded mb-3" />
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Password</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded mb-4" />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded mb-3" />
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => {
+                const next = e.target.checked;
+                setRememberMe(next);
+                localStorage.setItem('rememberMeUser', next ? 'true' : 'false');
+              }}
+              className="h-4 w-4"
+            />
+            Remember me
+          </label>
           {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
           <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Sign in</button>
         </form>
@@ -161,11 +176,13 @@ function NotFound() {
 
 function App() {
   const [authEnabled, setAuthEnabled] = useState<boolean | null>(null);
-  const [token, setToken] = useState(() => localStorage.getItem('authToken') || '');
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    const raw = localStorage.getItem('authUser');
+  const getStoredAuthToken = () => sessionStorage.getItem('authToken') || localStorage.getItem('authToken') || '';
+  const getStoredAuthUser = () => {
+    const raw = sessionStorage.getItem('authUser') || localStorage.getItem('authUser');
     return raw ? JSON.parse(raw) : null;
-  });
+  };
+  const [token, setToken] = useState(() => getStoredAuthToken());
+  const [user, setUser] = useState<AuthUser | null>(() => getStoredAuthUser());
   const [brandLogoDataUrl, setBrandLogoDataUrl] = useState('');
   const [brandLogoSizeUser, setBrandLogoSizeUser] = useState<'sm' | 'md' | 'lg'>('md');
   const [motdEnabled, setMotdEnabled] = useState(() => localStorage.getItem('motdEnabled') === 'true');
@@ -218,12 +235,21 @@ function App() {
     }
   }, [token]);
 
-  const handleLogin = (newToken: string, authUser: AuthUser) => {
+  const handleLogin = (newToken: string, authUser: AuthUser, rememberMe: boolean) => {
     axios.defaults.headers.common.Authorization = `Bearer ${newToken}`;
     setToken(newToken);
     setUser(authUser);
-    localStorage.setItem('authToken', newToken);
-    localStorage.setItem('authUser', JSON.stringify(authUser));
+    if (rememberMe) {
+      localStorage.setItem('authToken', newToken);
+      localStorage.setItem('authUser', JSON.stringify(authUser));
+      sessionStorage.removeItem('authToken');
+      sessionStorage.removeItem('authUser');
+    } else {
+      sessionStorage.setItem('authToken', newToken);
+      sessionStorage.setItem('authUser', JSON.stringify(authUser));
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('authUser');
+    }
   };
 
   const handleLogout = () => {
@@ -234,6 +260,8 @@ function App() {
     setUser(null);
     localStorage.removeItem('authToken');
     localStorage.removeItem('authUser');
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('authUser');
   };
 
   useEffect(() => {
@@ -301,7 +329,7 @@ function AppRoutes({
   authEnabled: boolean;
   token: string;
   user: AuthUser | null;
-  onLogin: (tokenValue: string, authUser: AuthUser) => void;
+  onLogin: (tokenValue: string, authUser: AuthUser, rememberMe: boolean) => void;
   onLogout: () => void;
   brandLogoDataUrl: string;
   brandLogoSize: 'sm' | 'md' | 'lg';
