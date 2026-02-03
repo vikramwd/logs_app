@@ -16,12 +16,14 @@ WDTS Logging Solution is a lightweight log search and administration UI built fo
 - Field Explorer with quick filters and pinned values.
 - Highlight Rules to visually flag important log patterns.
 - Export logs to JSON or CSV with size checks.
+- Upload logs with preview (NDJSON or regex), inferred mapping, and size estimates.
 
 ## Access & Permissions
 
 - Optional user login with roles (viewer/editor/admin).
 - Team feature toggles (exports, bookmarks, alert rules, query builder, PII access, and more).
 - Team and user index access controls.
+- Remember-me login toggle (session vs persistent).
 
 ## Admin Console
 
@@ -38,6 +40,8 @@ WDTS Logging Solution is a lightweight log search and administration UI built fo
 - Team bookmarks management for shared queries.
 - Branding controls (logo and sizing).
 - Maintenance tools (log rotation/pruning and service restarts).
+- Admin FAQs page for in-product guidance.
+- Admin error-log viewer (sanitized, app-only).
 
 ## User Experience
 
@@ -45,6 +49,9 @@ WDTS Logging Solution is a lightweight log search and administration UI built fo
 - Server-synced clock.
 - Recent searches and bookmarks.
 - Status indicators for OpenSearch and user sessions.
+- Message of the Day (MOTD) banner on login + user/admin UI when enabled.
+- “YourIP” header display for user/admin.
+- Query-aware tips when a search returns 0 hits or fails.
 
 ## Monitoring & Insights
 
