@@ -533,6 +533,7 @@ function AdminApp() {
     };
   }, []);
 
+
   const handleLogoUpload = (file: File | null) => {
     if (!file) return;
     const maxBytes = 512 * 1024;
@@ -1511,6 +1512,11 @@ function AdminApp() {
   const osOk = Boolean(diagnostics?.opensearch?.reachable && diagnostics.opensearch.status !== 'red');
   const appVersion = diagnostics?.appVersion?.trim() || '';
   const appVersionLabel = appVersion || 'uat';
+  const buildSha = (import.meta as any).env?.VITE_BUILD_SHA || '';
+  const buildBranch = (import.meta as any).env?.VITE_BUILD_BRANCH || '';
+  const buildEnv = (import.meta as any).env?.VITE_BUILD_ENV || (import.meta as any).env?.VITE_ENV || '';
+  const buildLabel = buildSha ? buildSha.slice(0, 8) : 'dev';
+  const buildSuffix = buildBranch ? ` (${buildBranch})` : '';
   const opensearchConnections = config.opensearchConnections || [];
 
   if (!authed) {
@@ -3035,9 +3041,18 @@ function AdminApp() {
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">Showing most recent {activityRows.length} entries.</div>
           )}
         </section>
-        {appVersionLabel && (
-          <div className="text-xs text-gray-500 dark:text-gray-400 text-right">{appVersionLabel}</div>
-        )}
+      </div>
+      <div className="mt-10 border-t border-gray-200 dark:border-gray-800">
+        <div className="max-w-6xl mx-auto px-2 py-3 text-[11px] text-gray-500 dark:text-gray-400 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="uppercase tracking-wide text-gray-400 dark:text-gray-500">Build</span>
+            <span className="font-mono">{buildLabel}{buildSuffix}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="uppercase tracking-wide text-gray-400 dark:text-gray-500">Env</span>
+            <span className="font-mono">{buildEnv || 'dev'}</span>
+          </div>
+        </div>
       </div>
       {notice && (
         <div className="fixed bottom-5 left-4 right-4 sm:left-auto sm:right-5 z-50">

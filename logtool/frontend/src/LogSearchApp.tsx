@@ -1054,7 +1054,7 @@ function LogSearchApp({
         const reachable = Boolean(response.data?.reachable);
         const status = String(response.data?.status || '').toLowerCase();
         if (!alive) return;
-        setOpensearchStatus(reachable && status !== 'red' ? 'ok' : 'down');
+        setOpensearchStatus(reachable ? 'ok' : 'down');
       } catch {
         if (alive) setOpensearchStatus('down');
       }
